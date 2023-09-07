@@ -13,6 +13,7 @@ Users are encouraged to review and understand the terms and conditions of this l
 
 
 
+
 # Robotic Seed Planter
 This is my final year project for my Mechatronics Engineering degree.
 The project goal is to build an autonomous planter for Maize and Beans.
