@@ -1,3 +1,18 @@
+**Disclaimer**
+
+The software provided in this repository is offered "as is," without any warranties or guarantees of any kind. The author(s) of this code are not liable for any faults, errors, or damages that may occur as a result of using, modifying, or distributing this software. 
+
+Commercial use of this software is strictly prohibited unless you have obtained prior written permission from the author. If you wish to use this software for commercial purposes, please contact the author for permission.
+
+By using this software, you acknowledge and agree that the author(s) shall not be held responsible or liable for any direct, indirect, incidental, special, exemplary, or consequential damages, including but not limited to, procurement of substitute goods or services, loss of use, data, or profits, or business interruption, however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this software, even if advised of the possibility of such damage.
+
+In no event shall the author(s) be liable for any claim, damages, or other liability, whether in an action of contract, tort, or otherwise, arising from, out of, or in connection with the software or the use or other dealings in the software.
+
+Users are encouraged to review and understand the terms and conditions of this license and use the software responsibly, abiding by the commercial use restrictions stated therein.
+
+
+
+
 # Robotic Seed Planter
 This is my final year project for my Mechatronics Engineering degree.
 The project goal is to build an autonomous planter for Maize and Beans.

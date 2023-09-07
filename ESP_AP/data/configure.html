@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Planting Parameters</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      header {
+          background-color: #2c3e50;
+          color: white;
+          text-align: center;
+          padding: 20px;
+      }
+
+      .content-wrapper {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          flex-grow: 1;
+          max-width: 800px; /* Adjust the maximum width as needed */
+          margin: 0 auto;
+      }
+
+      section {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          padding: 20px;
+          background-color: #f2f2f2;
+          border-radius: 5px;
+          box-shadow: 10px 10px 5px rgba(0, 0, 0, 0.1);
+          margin: 10px;
+      }
+
+      .left-section,
+      .right-section {
+          padding: 10px;
+      }
+
+      label {
+          display: block;
+          margin-top: 20px;
+          margin-bottom: 5px;
+          font-weight: bold;
+          font-size: 16px;
+      }
+
+      input,
+      select {
+          width: 100%;
+          padding: 10px;
+          margin-bottom: 10px;
+          font-size: 20px;
+      }
+
+      .note {
+          text-align: center;
+          font-style: italic;
+          margin: auto;
+      }
+
+      .note-div {
+          align-items: center;
+          margin: auto;
+          font-style: italic;
+      }
+
+      .submit-button {
+          text-align: center;
+          margin-top: 20px;
+      }
+
+      .submit-button button {
+          padding: 10px 20px;
+          background-color: #007BFF;
+          color: white;
+          border: none;
+          cursor: pointer;
+          border-radius: 10px;
+      }
+
+      .submit-button button:hover {
+          background-color: #007bffe6;
+      }
+
+      footer {
+          background-color: #777;
+          color: white;
+          text-align: center;
+          padding: 10px;
+          width: 100%;
+      }
+
+      /* Styles for the popup window */
+      .popup-container {
+          display: none;
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background-color: #ffffff;
+          border: 1px solid #007BFF;
+          padding: 20px;
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+          z-index: 9999;
+      }
+    
+      .popup-container h2 {
+          margin-top: 0; 
+      }
+
+      .popup-buttons {
+          text-align: right;
+      }
+
+      .popup-buttons button {
+          margin-left: 10px;
+      }
+
+      .overlay {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 9998;
+      }
+
+      .error {
+          color: red;
+          margin-bottom: 20px;
+      }
+
+      h3 {
+        
+        text-align: center;
+      }
+
+      /* Media queries for responsiveness */
+      /*@media screen and (max-width: 1080px) {
+          section {
+            flex-direction: column;
+          } 
+      }*/
+    </style>
+</head>
+<body>
+  <header>
+    <h1>Planting Parameters</h1>
+  </header>
+  <div class="content-wrapper">
+    <h3>Please enter required planting variables:</h3>
+    <section>
+
+      <div class="left-section">
+        <h2>Instruction Form</h2>
+        <form id="plantingForm" onsubmit="submitForm(event)">
+        <!-- <form action="/collect" method="POST" onsubmit="return validateForm()"> -->
+          <label for="cropType"><span style="color: red;">* </span>Crop Type:</label>
+          <select id="cropType" name="cropType" required>
+            <option value="">Select Crop Type</option>
+            <option value="maize">Maize</option>
+            <option value="beans">Beans</option>
+            <!-- Add more crop types here -->
+          </select>
+
+          <label for="soilType">Soil Type:</label>
+          <select id="soilType" name="soilType">
+            <option value="">Select Soil Type</option>
+            <option value="hard">Hard</option>
+            <option value="soft">Soft</option>
+            <!-- Add more soil types here -->
+          </select>
+
+          <label for="kernelsPerHole">Kernels per Hole:</label>
+          <select id="kernelsPerHole" name="kernelsPerHole">
+            <option value="">Select Kernels per Hole</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <!-- Add more options here -->
+          </select>
+        </div>
+
+        <div class="right-section">
+          <h2>Farm Details</h2>
+          <label for="farmLength"><span style="color: red;">* </span>Farm Length (metres):</label>
+          <input type="number" id="farmLength" name="farmLength" placeholder="Enter Farm Length in metres" required>
+
+          <label for="farmBreadth"><span style="color: red;">* </span>Farm Breadth (metres):</label>
+          <input type="number" id="farmBreadth" name="farmBreadth" placeholder="Enter Farm Breadth in metres" required>
+
+          <label for="startingLane"><span style="color: red;">* </span>Planter Starting Lane:</label>
+          <select id="startingLane" name="startingLane" required>
+            <option value="">Select Starting Lane</option>
+            <option value="length">Length</option>
+            <option value="breadth">Breadth</option>
+            <!-- Add more starting lane options here -->
+          </select>
+
+          <label for="planterStartingPoint"><span style="color: red;">* </span>Planter at Starting Point:</label>
+          <select id="planterStartingPoint" name="planterStartingPoint" onblur="startpoint()" required>
+            <option value="">Select Planter at Starting Point</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+            <!-- Add more options here -->
+          </select>
+          <div id="error" class="error"></div>
+
+          <div class="submit-button">
+            <button type="submit" id="submitBtn" style="padding: 10px 20px; background-color: #007BFF; color: white; border: none; cursor: pointer; border-radius: 10px;" 
+                onmouseover="this.style.backgroundColor='#007bffe6';" onmouseout="this.style.backgroundColor='#007BFF';">
+                Start Planting
+            </button>
+          </div>
+
+          <!-- <div class="submit-button">
+            <button type="submit" id="submitBtn">Start Planting</button>
+          </div> -->
+          <br>
+          <hr>
+        </form>
+      </div>
+      <br>
+      <div class="note-div">
+        <p class="note"><span style="color: red;">* </span>All other parameters like seed spacing, seed depth, row spacing, etc., are decided by the system to ensure optimal planting and seed growth.</p>
+      </div>
+    </form>
+    </section>
+  </div>
+  
+  <footer>
+    <div style="background-color: #777; color: white; text-align: center; padding: 10px;">
+        Planter - Smart gardening<br>
+        Serial number: <span id = 'SerialNumber'></span><br>
+        Developed by Abdulsalam © 2023
+    </div>
+</footer>
+
+  <div class="overlay" id="overlay"></div>
+  <div class="popup-container" id="popupContainer">
+    <h2>Confirm Submission</h2>
+    <p>Are you sure you want to submit the parameters?</p>
+    <div class="popup-buttons">
+      <button id="confirmBtn">Yes</button>
+      <button id="cancelBtn">Cancel</button>
+    </div>
+  </div>
+
+
+  
+  <script language="javascript" type="text/javascript">
+    function submitForm(event) {
+      event.preventDefault();
+
+      // Get form data
+      const formData = {
+        cropType: document.getElementById('cropType').value,
+        soilType: document.getElementById('soilType').value,
+        kernelsPerHole: document.getElementById('kernelsPerHole').value,
+        farmLength: document.getElementById('farmLength').value,
+        farmBreadth: document.getElementById('farmBreadth').value,
+        startingLane: document.getElementById('startingLane').value,
+        planterStartingPoint: document.getElementById('planterStartingPoint').value,
+      };
+
+      let planterPoint = document.getElementById('planterStartingPoint').value;
+
+        if (planterPoint == "no") {
+            const errorElement = document.getElementById("error");
+            errorElement.innerHTML = "Planter not at starting position. Please take to starting point!";
+            return;
+        }
+        else {
+            const errorElement = document.getElementById("error");
+            errorElement.innerHTML = "";
+        }
+
+        showPopup();
+
+      // Convert data to JSON format
+      //const jsonData = JSON.stringify(formData, null, 2);
+
+      // Show popup window to confirm submission
+      //if (window.confirm("Are you sure you want to submit the parameters?")) {
+        // Simulate sending the data to the server (you can replace this with your actual submission code)
+      //  console.log(jsonData);
+
+        // Clear form data after submission
+      //  document.getElementById('cropType').value = "";
+      //  document.getElementById('soilType').value = "";
+       // document.getElementById('kernelsPerHole').value = "";
+       // document.getElementById('farmLength').value = "";
+       // document.getElementById('farmBreadth').value = "";
+       // document.getElementById('startingLane').value = "";
+        //document.getElementById('planterStartingPoint').value = "";
+
+        // Clear stored form data in sessionStorage
+      //  sessionStorage.removeItem('formData');
+      //}
+    }
+
+    // Function to show the popup window
+    function showPopup() {
+        document.getElementById('overlay').style.display = 'block'
+        document.getElementById('popupContainer').style.display = 'block';
+    }
+
+    // Function to hide the popup window
+    function hidePopup() {
+        document.getElementById('overlay').style.display = 'none';
+        document.getElementById('popupContainer').style.display = 'none';
+    }
+
+    function startpoint() {
+        let planterPoint = document.getElementById('planterStartingPoint').value;
+
+        if (planterPoint == "no") {
+            const errorElement = document.getElementById("error");
+            errorElement.innerHTML = "Planter not at starting position. Please take to starting point!";
+            return;
+        }
+        else {
+            const errorElement = document.getElementById("error");
+            errorElement.innerHTML = "";
+        }
+    }
+
+    function validateForm() {
+      let planterPoint = document.getElementById('planterStartingPoint').value;
+
+      if (planterPoint == "no") {
+          const errorElement = document.getElementById("error");
+          errorElement.innerHTML = "Planter not at starting position. Please take to starting point!";
+          return false;
+      }
+      else {
+          const errorElement = document.getElementById("error");
+          errorElement.innerHTML = "";
+          return true;
+      }
+    }
+
+    document.getElementById('confirmBtn').addEventListener('click', function() {
+        // Hide the popup window
+        hidePopup();
+  
+        // Get form data
+        const formData = {
+          cropType: document.getElementById('cropType').value,
+          soilType: document.getElementById('soilType').value,
+          kernelsPerHole: document.getElementById('kernelsPerHole').value,
+          farmLength: document.getElementById('farmLength').value,
+          farmBreadth: document.getElementById('farmBreadth').value,
+          startingLane: document.getElementById('startingLane').value,
+          planterStartingPoint: document.getElementById('planterStartingPoint').value
+        };
+
+        // Convert data to JSON format
+        const jsonData = JSON.stringify(formData, null, 2);
+        // Simulate sending the data to the server
+        console.log(jsonData);
+
+        // Send the JSON data to the "/collect" webpage using POST method
+        fetch('/collect', {
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/json'
+            },
+            body: jsonData
+        })
+        .then(response => {
+            if (response.ok) {
+              document.write('<h3>Instructions successfully submitted!</h3> <br> Planting will start soon. <br><br> <b>Redirecting to Dashboard...</b>');
+              //Redirect after a delay of 3 seconds
+							setTimeout(() => {
+								window.location.href = '/dashboard';
+							}, 3000); //Time of redirect in milliseconds
+
+              // Clear form data after successful submission
+              //document.getElementById('plantingForm').reset();
+              // Clear stored form data in sessionStorage
+              sessionStorage.removeItem('formData');
+            } else {
+              console.error('Error sending data:', response.statusText);
+              alert('An error occurred while sending data. Please try again later.');
+            }
+        })
+        .catch(error => {
+            console.error('Error sending data:', error);
+            alert('An error occurred while sending data. Please try again later.');
+        });
+    });
+
+    // Handle cancellation when the user clicks "Cancel"
+    document.getElementById('cancelBtn').addEventListener('click', function() {
+      // Hide the popup window
+      hidePopup();
+    });
+
+    // Load stored form data on page load
+    document.addEventListener("DOMContentLoaded", function() {
+      const storedData = sessionStorage.getItem('formData');
+      if (storedData) {
+        const formData = JSON.parse(storedData);
+        document.getElementById('cropType').value = formData.cropType;
+        document.getElementById('soilType').value = formData.soilType;
+        document.getElementById('kernelsPerHole').value = formData.kernelsPerHole;
+        document.getElementById('farmLength').value = formData.farmLength;
+        document.getElementById('farmBreadth').value = formData.farmBreadth;
+        document.getElementById('startingLane').value = formData.startingLane;
+        document.getElementById('planterStartingPoint').value = formData.planterStartingPoint;
+      }
+    });
+
+    /************        WebSockets Code         **************/
+    var url = 'ws://' + window.location.hostname + ':81/configure';
+    var Socket;
+    var SerialNumber;
+
+    function init() {
+        Socket = new WebSocket(url);
+        Socket.onopen = function(event) {
+            onOpen(event);
+        }
+        Socket.onclose = function(event) {
+            onClose(event);
+        }
+        Socket.onmessage = function(event) {
+            processCommand(event); 
+        }
+        Socket.onerror = function(event) {
+            onError(event);
+        }
+    }
+
+    function onOpen(event) {
+        console.log("Connected to Websocket...Querying for data...")
+    }
+
+    function onClose(event) {
+        console.log("Disconnected from Websocket")
+        setTimeout(function() { init() }, 5000);
+    }
+
+    //Callback Function
+    function processCommand(event) {
+        var obj = JSON.parse(event.data);
+        document.getElementById('SerialNumber').innerHTML = obj.SerialNumber;
+        console.log("SerialNumber: " + obj.SerialNumber);
+        console.log("Received Message: " + event.data);
+    }
+
+    function onError(event) {
+        console.log("ERROR: " + event.data);
+    }
+
+    function doSend(message) {
+        console.log("Sending: " + message);
+        Socket.send(message);
+    }
+
+    window.addEventListener("load", init, false);
+  </script>
+</body>
+</html>

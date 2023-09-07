@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width;">
+	<title>Welcome to PLANTER BOT</title>	
+	<style>
+		body {
+			margin: 0;
+			padding: 0;
+			font-family: Arial, sans-serif;
+		}
+		  
+		header {
+			background-color: #2c3e50;
+			color: white;
+			text-align: center;
+			padding: 20px;
+		}
+		  
+		h1 {
+			margin: 0;
+		}
+		  
+		main {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			height: 80vh;
+		}
+		  
+		.buttons {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+		}
+		  
+		button {
+			background-color: #3498db;
+			border: none;
+			color: white;
+			padding: 32px 64px;
+			text-align: center;
+			text-decoration: none;
+			display: inline-block;
+			font-size: 40px;
+			margin: 10px;
+			cursor: pointer;
+			border-radius: 5px;
+		}
+		  
+		button:hover {
+			background-color: #2980b9;
+			transform: scale(1.05);
+		}
+		  
+		.login-button {
+			order: 1;
+		}
+		  
+		.signup-button {
+			order: 2;
+		}
+		.homepage-button {
+			order: 3;
+		}
+
+
+		footer {
+			background-color: #777;
+			color: white;
+			text-align: center;
+			padding: 10px;
+			margin-top: auto;
+			bottom: 0;
+			width: 100%;
+			font-size: 15px;
+		  }
+
+		.wrapper {
+			display: grid;
+			grid-template-columns: 1fr;
+			grid-template-rows: auto 1fr auto;
+			min-height: 100vh;
+		}
+
+		@media screen and (max-width: 1080px) {
+			section {
+			  flex-direction: column;
+			} 
+		}
+	</style>	
+</head>
+<body  class="wrapper">
+	<header>
+		<h1>Welcome to PLANTER BOT</h1>
+		<h4>Serial Number: <span id = 'SerialNumber'></span> </h4>
+	</header>
+	<main>
+		<div class="buttons">
+			<a href="/login"><button class="login-button">Login</button></a>
+			<a href="/register"><button class="signup-button">Sign-Up</button></a>
+			<a href="/homepage"><button class="homepage-button">Homepage</button></a>
+		</div>
+	</main>
+
+	<footer>
+        <div>Planter - Smart gardening</div>
+        <div>Serial number: <span id = 'SerialNumber2'></span></div>
+        <br>
+        Developed by Abdulsalam © 2023 
+        
+    </footer>
+
+	<script>
+		/************        WebSockets Code         **************/
+        var url = 'ws://' + window.location.hostname + ':81/index';
+        var Socket;
+        var SerialNumber;
+
+        function init() {
+            Socket = new WebSocket(url);
+            Socket.onopen = function(event) {
+                onOpen(event);
+            }
+            Socket.onclose = function(event) {
+                onClose(event);
+            }
+            Socket.onmessage = function(event) {
+                processCommand(event); 
+            }
+            Socket.onerror = function(event) {
+                onError(event);
+            }
+        }
+
+        function onOpen(event) {
+            console.log("Connected to Websocket...Querying for data...")
+        }
+
+        function onClose(event) {
+            console.log("Disconnected from Websocket")
+            setTimeout(function() { init() }, 5000);
+        }
+
+        //Callback Function
+        function processCommand(event) {
+            var obj = JSON.parse(event.data);
+            document.getElementById('SerialNumber').innerHTML = obj.SerialNumber;
+			document.getElementById('SerialNumber2').innerHTML = obj.SerialNumber;
+            
+            console.log("SerialNumber: " + obj.SerialNumber);
+            console.log("Received Message: " + event.data);
+        }
+
+        function onError(event) {
+            console.log("ERROR: " + event.data);
+        }
+
+        function doSend(message) {
+            console.log("Sending: " + message);
+            Socket.send(message);
+        }
+
+        window.addEventListener("load", init, false);
+	</script>
+</body>
+</html>

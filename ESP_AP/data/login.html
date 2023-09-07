@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width">
+	<title>Login - PLANTER BOT</title>
+	<!-- <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='loginstyle.css')}}"> -->
+	<!-- <link rel="stylesheet" type="text/css" href="/static/loginstyle.css"> -->
+	<style>
+		body {
+			flex: 1;
+			margin: 0;
+			padding: 0;
+			font-family: Arial, sans-serif;
+			align-items: center;
+		}
+		  
+		header {
+			background-color: #2c3e50;
+			color: white;
+			text-align: center;
+			padding: 20px;
+			width: 100%;
+		}
+		  
+		h1, h2 {
+			margin: 0;
+			font-size: 30px;
+		}
+		  
+		h4{
+			font-size: 20px;
+		}
+
+		h2 {
+			text-align: center;
+			font-size: 50px;
+			margin-top: 30px;
+		}
+		  
+		main {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			flex-wrap: wrap;
+		}
+		  
+		form {
+			background-color: #f2f2f2;
+			border-radius: 5px;
+			box-shadow: 10px 10px 5px rgba(0, 0, 0, 0.1);
+			padding: 20px 100px;
+			margin: 20px;
+
+		}
+		  
+		label {
+			display: block;
+			font-weight: bold;
+			margin-bottom: 5px;
+			font-size: 20px;
+		}
+		  
+		input {
+			width: 95%;
+			margin-bottom: 10px;
+			border: none;
+			border-radius: 5px;
+			padding: 20px 30px;
+			font-size: 20px;
+		}
+		  
+		button[type="submit"] {
+			background-color: #3498db;
+			border: none;
+			color: white;
+			padding: 10px 20px;
+			text-align: center;
+			text-decoration: none;
+			display: inline-block;
+			font-size: 28px;
+			margin-top: 10px;
+			cursor: pointer;
+			border-radius: 5px;
+		}
+		  
+		button[type="submit"]:hover {
+			background-color: #2980b9;
+		}
+		  
+		p {
+			margin-top: 20px;
+			text-align: center;
+			font-size: 30px;
+		}
+		  
+		a {
+			color: #3498db;
+			text-decoration: none;
+		}
+		  
+		a:hover {
+			text-decoration: underline;
+		}
+
+		.errorMsg {
+			font-size: 20px;
+			color: red;
+		}
+
+		footer {
+            background-color: #777;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            margin-top: auto;
+            bottom: 0;
+            width: 100%;
+			font-size: 15px;
+        }
+
+		/*.wrapper {
+			display: grid;
+			grid-template-columns: 1fr;
+			grid-template-rows: auto 1fr auto;
+			min-height: 100vh;
+		}*/
+
+		@media screen and (max-width: 1080px) {
+			section {
+			  flex-direction: column;
+			} 
+		}
+	</style>
+</head>
+<body  class="wrapper">
+	<header>
+		<h1>Welcome to PLANTER BOT </h1> 
+		<h4>Serial Number: <span id = 'SerialNumber'></span> </h4>
+	</header>
+	<main>
+		<form onsubmit="return submitForm(event)">
+		<!-- <form action="/check" method="POST"> -->
+			<h2>Login</h2> <br><br>
+			<label for="username">Username</label>
+			<input type="text" id="username" name="username" onblur="checkInput()" required>
+			<p id="errorMsg" class="errorMsg"></p>
+
+			<label for="password">Password</label>
+			<input type="password" id="password" name="password" required>
+
+			<div id="error" class="error"></div>
+
+			<button type="submit">Login</button>
+			<br />
+			<div id="error-message"></div>
+			<br />
+			<p>Not a User? <a href="/register">Register</a></p>
+		</form>
+	</main>
+	<footer>
+        <div>Planter - Smart gardening</div>
+        <div>Serial number: <span id = 'SerialNumber2'></span></div>
+        <br>
+        Developed by Abdulsalam © 2023 
+        <br>
+    </footer>
+
+	<script language="javascript" type="text/javascript">
+		function checkInput() {
+			var input = document.getElementById("username").value;
+			var errorMsg = document.getElementById("errorMsg");
+			
+			if (!/^[a-zA-Z][a-zA-Z0-9]*$/.test(input)) {
+				errorMsg.textContent = "Username must start with a letter and only contain letters and numbers";
+			} else {
+				errorMsg.textContent = "";
+			}
+		}
+
+		function checkUsername() {
+			var username = document.getElementById("username").value;
+			var regex = /^[a-zA-Z][a-zA-Z0-9]*$/;
+			if (!regex.test(username)) {
+			  alert("Invalid username format. Please enter only letters and numbers, starting with a letter.");
+			}
+		}
+
+		function submitForm(event) {
+			event.preventDefault();
+		
+			const username = document.getElementById("username").value;
+			const password = document.getElementById("password").value;
+		
+			
+		
+			const payload = {
+				username: document.getElementById("username").value,
+				password: document.getElementById("password").value
+			};
+
+			// Convert data to JSON format
+			const jsonData = JSON.stringify(payload, null, 2);
+
+			// Print the payload to console for debugging
+			console.log(jsonData);
+		
+			fetch('/check', {
+				method: 'POST',
+				headers: {
+				'Content-Type': 'application/json'
+				},
+				body: jsonData
+			})
+			.then(response => {
+				if (response.ok) {
+					document.write('Login Successful! Redirecting to homepage...');
+					// Redirect to login page if registration is successful
+					//Redirect after a delay of 2 seconds
+					setTimeout(() => {
+						window.location.href = '/homepage';
+					}, 2000); //Time of redirect in milliseconds
+				} else if (!response.ok) {
+					// Handle registration failure here, show error message or reload the page
+					//throw new Error("HTTP status " + response.status);
+					throw new Error("Username or Password Incorrect!, or User doesn't exist! Please Retry...");
+					document.getElementById('password').value = "";
+					document.getElementById('password').innerHTML = "";
+					//alert("Registration failed, Username or Password incorrect! Please reload page and try again.");
+					return response.json(); // Parse response as JSON
+					//return;
+				}
+			})
+			.then(data => {
+				// Handle the error message here
+				if (data && data.message) {
+					// Display the error message to the user
+					console.error(data.message);
+					// You can display the error message on the page or use an alert
+					errorMessageElement.innerHTML = `<p class="error">${data.message}</p>`;
+					//setTimeout(() => {
+					//	window.location.href = '/login';
+					//}, 2000); //Time of redirect in milliseconds
+				}
+			})
+			.catch(error => {
+				//alert("An error occurred. Please reload page and try again later.");
+				alert(error);
+				document.getElementById('password').value = "";
+			});
+		
+		}
+
+		/************        WebSockets Code         **************/
+        var url = 'ws://' + window.location.hostname + ':81/login';
+        var Socket;
+        var SerialNumber;
+
+        function init() {
+            Socket = new WebSocket(url);
+            Socket.onopen = function(event) {
+                onOpen(event);
+            }
+            Socket.onclose = function(event) {
+                onClose(event);
+            }
+            Socket.onmessage = function(event) {
+                processCommand(event); 
+            }
+            Socket.onerror = function(event) {
+                onError(event);
+            }
+        }
+
+        function onOpen(event) {
+            console.log("Connected to Websocket...Querying for data...")
+        }
+
+        function onClose(event) {
+            console.log("Disconnected from Websocket")
+            setTimeout(function() { init() }, 5000);
+        }
+
+        //Callback Function
+        function processCommand(event) {
+            var obj = JSON.parse(event.data);
+            document.getElementById('SerialNumber').innerHTML = obj.SerialNumber;
+			document.getElementById('SerialNumber2').innerHTML = obj.SerialNumber;
+
+            console.log("SerialNumber: " + obj.SerialNumber);
+            console.log("Received Message: " + event.data);
+        }
+
+        function onError(event) {
+            console.log("ERROR: " + event.data);
+        }
+
+        function doSend(message) {
+            console.log("Sending: " + message);
+            Socket.send(message);
+        }
+
+        window.addEventListener("load", init, false);
+	</script>
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <meta http-equiv="refresh" content="5"> -->
+    <title>Dashboard</title>
+    <style>
+        /* Sidebar styles */
+        .sidebar {
+            height: 100%;
+            width: 0;
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            background-color: #111;
+            overflow-x: hidden;
+            transition: 0.5s;
+            padding-top: 60px;
+        }
+        
+        .sidebar a {
+            padding: 8px 8px 8px 32px;
+            text-decoration: none;
+            font-size: 25px;
+            color: #818181;
+            display: block;
+            transition: 0.3s;
+        }
+        
+        .sidebar a:hover {
+            color: #f1f1f1;
+        }
+        
+        .sidebar .closebtn {
+            position: absolute;
+            top: 0;
+            right: 25px;
+            font-size: 36px;
+            margin-left: 50px;
+        }
+        
+        .openbtn {
+            font-size: 20px;
+            cursor: pointer;
+            background-color: #111;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+        }
+        
+        .openbtn:hover {
+            background-color: #444;
+        }
+        
+        /* Style the main content */
+        .main {
+            transition: margin-left .5s;
+            padding: 20px;
+        }
+        
+        /* Set the width of the sidebar to 250px (collapsed) */
+        .sidebar.collapsed {
+            width: 0px;
+        }
+        
+        /* Set the width of the sidebar to 0 (expanded) */
+        .sidebar.expanded {
+            width: 250px;
+        }
+        
+        /* Set the margin to 250px (collapsed) */
+        .main.collapsed {
+            margin-left: 0px;
+        }
+        
+        /* Set the margin to 0 (expanded) */
+        .main.expanded {
+            margin-left: 250px;
+        }
+
+        .homepage-link {
+            color: #fff;
+            text-decoration: none;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .homepage-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f7f9fa;">
+    <button class="openbtn" onclick="openNav()">☰</button>
+	<div id="mySidebar" class="sidebar">
+		<a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
+		<a href="/homepage">Homepage</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/configure">Planting Parameters</a>
+        <a href="/controller">Manual Control</a>
+        <a href="/explore">Explore</a>
+	</div>
+    <header style="background-color: #4CAF50; color: white; text-align: center; padding: 15px;">
+        <h1>Dashboard</h1>
+    </header>
+    <main style="display: flex; flex-direction: column; align-items: center; padding: 20px; background-color: #fff; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1); border-radius: 10px; margin: 20px;">
+        <div class="toggle-switch-container" style="display: flex; align-items: center; font-size: 18px; margin-bottom: 10px; color: #555;">
+            <label class="toggle-label" style="margin-right: 10px;">Planting Process</label>
+            <label class="toggle-switch" style="width: 50px; height: 20px; border-radius: 50px; position: relative; cursor: disabled; transition: background-color 0.4s; background-color: #ccc;">
+                <input type="checkbox" id="toggleSwitch" style="position: absolute; opacity: 0; width: 0; height: 0;">
+                <span class="slider" style="width: 20px; height: 20px; border-radius: 50%; background-color: red; position: absolute; top: 0; left: 0; transition: left 0.4s;"></span>
+            </label>
+        </div>
+        <div class="progress-bar-container" style="margin-bottom: 10px;">
+            <p class="progress-label" style="font-weight: bold; margin-bottom: 5px; color: #555;">Holes Dug:</p>
+            <div class="progress-bar" style="width: 100%; height: 20px; background-color: #ddd; border-radius: 10px; overflow: hidden;">
+                <div class="fill-bar" style="height: 100%; background-color: #4CAF50; width: 50%;"></div> <!-- Dynamic progress -->
+            </div>
+        </div>
+        <div class="progress-bar-container" style="margin-bottom: 10px;">
+            <p class="progress-label" style="font-weight: bold; margin-bottom: 5px; color: #555;">Rows Completed:</p>
+            <div class="progress-bar" style="width: 100%; height: 20px; background-color: #ddd; border-radius: 10px; overflow: hidden;">
+                <div class="fill-bar" style="height: 100%; background-color: #4CAF50; width: 30%;"></div> <!-- Dynamic progress -->
+            </div>
+        </div>
+        <p><b>Total Distance Covered:</b> <span id="distanceCovered"></span> m</p>
+        <p><b> Seed Spacing: </b><span id="currentSeedSpacing"></span> cm</p>
+        <p><b>Current Seed Depth: </b><span id="currentSeedDepth"></span> cm</p>
+        <p><b>Current Row Spacing: </b><span id="currentRowSpacing"></span> cm</p>
+        <p><b>Current Kernels per Hole: </b><span id="currentKernelsPerHole"></span></p>
+        <p><b>Farm Length: </b><span id="farmLength"></span> m</p>
+        <p><b>Farm Breadth: </b><span id="farmBreadth"></span> m</p>
+        <button class="dynamic-button" id="dynamic-button" style="background-color: #3498db;
+			border: none;
+			color: white;
+			padding: 10px 15px;
+			text-align: center;
+			text-decoration: none;
+			display: inline-block;
+			font-size: 15px;
+			margin: 10px;
+			cursor: pointer;
+			border-radius: 5px; 
+            order:1;"
+            onmouseover="this.style.backgroundColor='#2980b9';" onmouseout="this.style.backgroundColor='#3498db';"
+            onclick="dynamicbuton()"></button></a>
+    </main>
+    <footer style="background-color: #777; color: white; text-align: center; padding: 10px;">
+        <div>Planter - Smart gardening</div>
+        <div>Serial number: <span id = 'SerialNumber'></span></div>
+        <div>Developed by Salam © 2023</div>
+    </footer>
+
+
+
+
+
+    <script language="javascript" type="text/javascript">
+
+        var status = 0;
+        var toggleValue = false;
+
+        //if (status == 0) {
+        //    document.getElementById("dynamic-button").innerHTML = "Start Planting";
+       //} else {
+        //    document.getElementById("dynamic-button").innerHTML = "Stop Planting";
+        //}
+
+        // JavaScript to update values from ESP32
+        function toggle() {
+            const toggleSwitch = document.getElementById('toggleSwitch');
+        
+            // Simulating receiving value from server (true or false)
+            if (status == 0) {
+                toggleValue = false;
+            } else {
+                toggleValue = true;
+            }
+
+            // Change this to your actual received value
+            
+            // Update toggle switch based on received value
+            toggleSwitch.checked = toggleValue;
+            const slider = document.querySelector('.slider');
+            if (toggleSwitch.checked) {
+                slider.style.left = '30px';
+                slider.style.backgroundColor = '#4CAF50';
+            } else {
+                slider.style.left = '0';
+                slider.style.backgroundColor = 'red';
+            }
+        }
+        
+        /*toggleSwitch.addEventListener('change', () => {
+            const slider = document.querySelector('.slider');
+            if (toggleSwitch.checked) {
+                slider.style.left = '30px';
+                slider.style.backgroundColor = '#4CAF50';
+            } else {
+                slider.style.left = '0';
+                slider.style.backgroundColor = 'red';
+            }
+        });*/
+
+
+		function openNav() {
+            document.getElementById("mySidebar").style.width = "230px";
+            //document.getElementById("main").style.marginLeft = "250px";
+		}
+
+		/* Set the width of the side navigation to 0 and the left margin of the page content to 0 */
+		function closeNav() {
+		document.getElementById("mySidebar").style.width = "0";
+		//document.getElementById("main").style.marginLeft = "0";
+		//document.querySelector('#body').addEventListener('click', closeNav);
+		}
+
+        function dynamicbuton() {
+            if (status == 0) {
+                window.location.href = '/configure';
+            } else {
+                window.location.href = '/stopplanting';
+            }
+        }
+
+        
+        /************        WebSockets Code         **************/
+        var url = 'ws://' + window.location.hostname + ':81/dashboard';
+        var Socket;
+        var SerialNumber;
+
+        function init() {
+            Socket = new WebSocket(url);
+            Socket.onopen = function(event) {
+                onOpen(event);
+            }
+            Socket.onclose = function(event) {
+                onClose(event);
+            }
+            Socket.onmessage = function(event) {
+                processCommand(event); 
+            }
+            Socket.onerror = function(event) {
+                onError(event);
+            }
+            //SerialNumber = document.getElementById('SerialNumber');
+        }
+
+        function onOpen(event) {
+            console.log("Connected to Websocket...Querying for data...")
+            //toggleValue = false;
+            //doSend("getPlanterStatus");
+            //doSend("SerialNumber");
+        }
+
+        function onClose(event) {
+            console.log("Disconnected from Websocket")
+            //toggleValue = false;
+            //doSend("getPlanterStatus");
+            //doSend("SerialNumber");
+            setTimeout(function() { init() }, 5000);
+        }
+
+        //Callback Function
+        function processCommand(event) {
+            var obj = JSON.parse(event.data);
+            document.getElementById('SerialNumber').innerHTML = obj.SerialNumber;
+            document.getElementById('distanceCovered').innerHTML = obj.distanceCovered;
+            document.getElementById('currentSeedSpacing').innerHTML = obj.currentSeedSpacing;
+            document.getElementById('currentSeedDepth').innerHTML = obj.currentSeedDepth;
+            document.getElementById('currentRowSpacing').innerHTML = obj.currentRowSpacing;
+            document.getElementById('currentKernelsPerHole').innerHTML = obj.currentKernelsPerHole;
+            document.getElementById('farmLength').innerHTML = obj.farmLength;
+            document.getElementById('farmBreadth').innerHTML = obj.farmBreadth;
+            status = obj.planterStatus;
+            document.getElementById("dynamic-button").innerHTML = obj.dynamicbutton;
+            toggle();
+            
+            console.log("SerialNumber: " + obj.SerialNumber);
+            console.log("distanceCovered: " + obj.distanceCovered);
+            console.log("currentSeedSpacing: " + obj.currentSeedSpacing);
+            console.log("currentSeedDepth: " + obj.currentSeedDepth);
+            console.log("currentRowSpacing: " + obj.currentRowSpacing);
+            console.log("currentKernelsPerHole: " + obj.currentKernelsPerHole);
+            console.log("farmLength: " + obj.farmLength);
+            console.log("farmBreadth: " + obj.farmBreadth);
+            console.log("plantingStatus: " + obj.planterStatus);
+            console.log("Received Message: " + event.data);
+            //var state = event.data;
+            //toggleValue = state;
+        }
+
+        function onError(event) {
+            console.log("ERROR: " + event.data);
+        }
+
+        function doSend(message) {
+            console.log("Sending: " + message);
+            Socket.send(message);
+        }
+        //window.onload = function(event) {
+        //    init();
+        //}
+        window.addEventListener("load", init, false);
+    </script>
+</body>
+</html>

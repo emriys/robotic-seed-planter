@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="user-scalable=no">
+    <title>Robotic Seed Planter Remote Controller</title>
+    <!-- <link rel="icon" href="data:,"> -->
+    <!-- <link rel="stylesheet" type="text/css" href="controllerstyle.css"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='controllerstyle.css') }}">
+    <style>
+         /* Sidebar styles */
+         .sidebar {
+            height: 100%;
+            width: 0;
+            position: fixed;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            background-color: #111;
+            overflow-x: hidden;
+            transition: 0.5s;
+            padding-top: 60px;
+        }
+        
+        .sidebar a {
+            padding: 8px 8px 8px 32px;
+            text-decoration: none;
+            font-size: 25px;
+            color: #818181;
+            display: block;
+            transition: 0.3s;
+        }
+        
+        .sidebar a:hover {
+            color: #f1f1f1;
+        }
+        
+        .sidebar .closebtn {
+            position: absolute;
+            top: 0;
+            right: 25px;
+            font-size: 36px;
+            margin-left: 50px;
+        }
+        
+        .openbtn {
+            font-size: 20px;
+            cursor: pointer;
+            background-color: #111;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+        }
+        
+        .openbtn:hover {
+            background-color: #444;
+        }
+        
+        /* Style the main content */
+        .main {
+            transition: margin-left .5s;
+            padding: 20px;
+        }
+        
+        /* Set the width of the sidebar to 250px (collapsed) */
+        .sidebar.collapsed {
+            width: 0px;
+        }
+        
+        /* Set the width of the sidebar to 0 (expanded) */
+        .sidebar.expanded {
+            width: 250px;
+        }
+        
+        /* Set the margin to 250px (collapsed) */
+        .main.collapsed {
+            margin-left: 0px;
+        }
+        
+        /* Set the margin to 0 (expanded) */
+        .main.expanded {
+            margin-left: 250px;
+        }
+
+        .homepage-link {
+            color: #fff;
+            text-decoration: none;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .homepage-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body style="position: fixed; overflow: hidden; font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif ;
+color:rgb(128, 128, 128);
+font-size: xx-large; ">
+    <button class="openbtn" onclick="openNav()">☰</button>
+    <div id="mySidebar" class="sidebar">
+        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
+        <a href="/homepage">Homepage</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/configure">Planting Parameters</a>
+        <a href="/controller">Manual Control</a>
+        <a href="/explore">Explore</a>
+    </div>
+    <h1 style="text-align:center"> PLANTER BOT CONTROLS</h1>
+    <h2 style="text-align: center">...lets get moving</h2>
+    <p style="text-align: center">
+        X: <span id="x_coordinate"> </span>
+        Y: <span id="y_coordinate"> </span>
+        Speed: <span id="speed"> </span> %
+        Angle: <span id="angle"> </span>
+    </p>
+    <canvas id="canvas" name="game"></canvas>
+
+    <script>
+        /************        WebSockets Code         **************/
+        var url = 'ws://' + window.location.hostname + ':100/controller';
+        var Socket;
+
+        Socket = new WebSocket(url);
+
+        Socket.onopen = function(event) {
+            onOpen(event);
+        };
+        Socket.onclose = function(event) {
+            onClose(event);
+        };
+        Socket.onmessage = function(event) {
+            processCommand(event); 
+        };
+        Socket.onerror = function(event) {
+            onError(event);
+        }
+
+        //var data;
+        function send(x,y,speed,angle) {
+            var data = {"x":x,"y":y,"speed":speed,"angle":angle};
+            var data2 = JSON.stringify(data);
+            console.log(data2);
+            Socket.send(data2);
+        }
+
+        //SerialNumber = document.getElementById('SerialNumber');
+
+        function onOpen(event) {
+            console.log("Connected to Websocket...Querying for data...")
+            //doSend(data2);
+            //setTimeout(function() { init() }, 150);
+        }
+
+        function onClose(event) {
+            console.log("Disconnected from Websocket")
+            //toggleValue = false;
+            //doSend("getPlanterStatus");
+            //doSend("SerialNumber");
+            setTimeout(function() { init() }, 2000);
+        }
+
+        //Callback Function
+        function processCommand(event) {
+            console.log("Received: " + obj.planterStatus);
+            console.log("Received Message: " + event.data);
+        }
+
+        function onError(event) {
+            console.log("ERROR: " + event.data);
+        }
+
+        function doSend(message) {
+            console.log("Sending: " + message);
+            Socket.send(message);
+        }
+        //window.onload = function(event) {
+        //    init();
+        //}
+        window.addEventListener("load", init, false);
+        //setTimeout(function() { init() }, 2000);
+    </script>
+    
+    <script>
+        var canvas, ctx, dataInterval;
+
+        window.addEventListener('load', () => {
+            canvas = document.getElementById('canvas'); //get html element
+            ctx = canvas.getContext('2d'); //specify drawing 2D diagrams
+            resize(); 
+
+            document.addEventListener('mousedown', startDrawing);
+            document.addEventListener('mouseup', stopDrawing);
+            document.addEventListener('mousemove', Draw);
+
+            document.addEventListener('touchstart', startDrawing);
+            document.addEventListener('touchend', stopDrawing);
+            document.addEventListener('touchcancel', stopDrawing);
+            document.addEventListener('touchmove', Draw);
+
+            window.addEventListener('resize', resize); //screen resize function
+
+            document.getElementById("x_coordinate").innerText = 0;
+            document.getElementById("y_coordinate").innerText = 0;
+            document.getElementById("speed").innerText = 0;
+            document.getElementById("angle").innerText = 0;
+        });
+
+      
+
+
+        var width, height, radius, x_orig, y_orig;
+        function resize() {
+            radius = 300;
+            width = window.innerWidth; //Sets the variable width to be equal to the windows width
+            height = radius * 6.5; //Sets the variable height
+            ctx.canvas.width = width; //sets the canvas width to be equal to variable width
+            ctx.canvas.height = height; //sets the canvas height
+            background(); //draw the background
+            joystick(width / 2, height / 3); //sends to the joystick function these variables
+        }
+
+        function background() {
+            x_orig = width / 2;
+            y_orig = height / 3;
+
+            ctx.beginPath(); //begin drawing
+
+            //To draw a circle, we need to specify the center with respect to the
+            //x and y axis, its radius, the start and end angle in radians 
+            //and the rotation(true for clockwise) in this 
+            //format arc(x, y, radius, startAngle, endAngle, anticlockwise).
+            ctx.arc(x_orig, y_orig, radius + 110, 0, Math.PI * 2, true);
+            ctx.fillStyle = '#ECE5E5';
+            ctx.fill();
+        }
+
+        function joystick(width, height) {
+            ctx.beginPath();
+            ctx.arc(width, height, radius/2, 0, Math.PI * 2, true);
+            //ctx.fillStyle = '#F08080';
+            ctx.fillStyle = '#3378FF';
+            ctx.fill();
+            ctx.strokeStyle = '#F6ABAB';
+            ctx.lineWidth = 10;
+            ctx.stroke();
+        }
+
+        let coord = { x: 0, y: 0 };
+        let paint = false;
+        function getPosition(event) {
+            //Get the absolute mouse position with or get the absolute touch position
+            var mouse_x = event.clientX || event.touches[0].clientX;
+            var mouse_y = event.clientY || event.touches[0].clientY;
+            //Get the position relative with the canvas by subtracting the left and top
+            coord.x = mouse_x - canvas.offsetLeft;
+            coord.y = mouse_y - canvas.offsetTop;
+        }
+
+        function is_it_in_the_circle() {
+            //get the distance of the mouse position relative to the circle's center using the Pythagorean theorem.
+            var current_radius = Math.sqrt(Math.pow(coord.x - x_orig, 2) + Math.pow(coord.y - y_orig, 2));
+            if (radius >= current_radius) return true
+            else return false
+        }
+
+
+        function startDrawing(event) {
+            paint = true;
+            getPosition(event);
+            if (is_it_in_the_circle()) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                background();
+                joystick(coord.x, coord.y);
+                Draw();
+            }
+        }
+
+        function Draw(event) {
+            if (paint) {
+                //Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                background();
+                //Compute the angle in radians
+                var angle_in_degrees,x, y, speed;
+                var angle = Math.atan2((coord.y - y_orig), (coord.x - x_orig));
+                if (Math.sign(angle) == -1) {
+                    angle_in_degrees = Math.round(-angle * 180 / Math.PI);
+                }
+                else {
+                    angle_in_degrees = Math.round( 360 - angle * 180 / Math.PI);
+                }
+                //Call the function is_it_in_the_circle() to check if its 
+                //within the circle. if true, draw the joystick with the mouse as its center
+                if (is_it_in_the_circle()) {
+                    joystick(coord.x, coord.y);
+                    x = coord.x;
+                    y = coord.y;
+                }
+                //if its outside the circle, draw the joysticks circle at the
+                //same angle with the mouse position at its original radius
+                else {
+                    x = radius * Math.cos(angle) + x_orig;
+                    y = radius * Math.sin(angle) + y_orig;
+                    joystick(x, y);
+                }
+                getPosition(event);
+                //Calculate the radius for its speed and rounds its value
+                var speed =  Math.round(100 * Math.sqrt(Math.pow(x - x_orig, 2) + Math.pow(y - y_orig, 2)) / radius);
+                //Return the relative x and y value with respect to the axis of the joystick(original x and y coordinates)
+                var x_relative = Math.round(x - x_orig);
+                var y_relative = Math.round(y - y_orig);
+                
+
+                document.getElementById("x_coordinate").innerText =  x_relative;
+                document.getElementById("y_coordinate").innerText =y_relative ;
+                document.getElementById("speed").innerText = speed;
+                document.getElementById("angle").innerText = angle_in_degrees;
+
+                send(x_relative,y_relative,speed,angle_in_degrees);
+            }
+        } 
+
+        function stopDrawing() {
+            paint = false;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            background();
+            joystick(width / 2, height / 3);
+            document.getElementById("x_coordinate").innerText = 0;
+            document.getElementById("y_coordinate").innerText = 0;
+            document.getElementById("speed").innerText = 0;
+            document.getElementById("angle").innerText = 0;
+
+        }
+
+         // Start sending data at an interval of 500 milliseconds (adjust as needed)
+         dataInterval = setInterval(() => {
+            var x_relative = parseInt(document.getElementById("x_coordinate").innerText);
+            var y_relative = parseInt(document.getElementById("y_coordinate").innerText);
+            var speed = parseInt(document.getElementById("speed").innerText);
+            var angle = parseInt(document.getElementById("angle").innerText);
+            send(x_relative, y_relative, speed, angle);
+        }
+        , 500); // Adjust the interval time (in milliseconds) as needed
+        
+
+        // Navigation Bar logic
+        //document.getElementById('main').addEventListener('click', closeNav);
+
+		function openNav() {
+		document.getElementById("mySidebar").style.width = "230px";
+		document.getElementById("main").style.marginLeft = "250px";
+		}
+
+		/* Set the width of the side navigation to 0 and the left margin of the page content to 0 */
+		function closeNav() {
+		document.getElementById("mySidebar").style.width = "0";
+		document.getElementById("main").style.marginLeft = "0";
+		document.querySelector('#body').addEventListener('click', closeNav)
+		}
+    </script>
+</body>
+</html>
