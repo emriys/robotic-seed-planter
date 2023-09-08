@@ -42,15 +42,6 @@ bool checkUserExistsR(const String& firstname, const String& username, const Str
       serializeJson(doc, addfile);
       addfile.close();
 
-      // serializeJson(doc, file);
-      // addfile.close();
-
-
-      // Save the updated JSON data back to the file
-      // file.seek(0);
-      // serializeJson(doc, file);
-      // file.truncate(0);  // Clear any remaining data
-
 
       file.close();
 

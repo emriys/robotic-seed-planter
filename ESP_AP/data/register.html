@@ -158,7 +158,6 @@
 		</header>
 		<main>
 			<form class="form" onsubmit="return submitForm(event)">
-			<!-- <form class="form"> -->
 			<!-- <form action="/add" method="POST" onsubmit="return validateForm()"> -->
 				<h2>Add Account</h2>
 
@@ -283,8 +282,8 @@
 					})
 					.then(response => {
 						if (response.ok) {
-							document.write('Registration Successful! Redirecting to login...');
 							// Redirect to login page if registration is successful
+							document.write('Registration Successful! Redirecting to login...');
 							//Redirect after a delay of 2 seconds
 							setTimeout(() => {
 								window.location.href = '/login';
@@ -295,7 +294,6 @@
 							//throw new Error("HTTP status " + response.status);
 							throw new Error("Username already exists, Please try a different one...");
 							return response.text(); // Parse response as JSON
-							//return;
 						}
 					})
 					.then(data => {

@@ -12,14 +12,6 @@
 
 String SerialNumber = "0001";
 
-// Arrays to store the lastest 5 values of x, y, speed, angle, and velocity
-const int maxValues = 5;
-int xValues[maxValues];
-int yValues[maxValues];
-int speedValues[maxValues];
-int angleValues[maxValues];
-int velocityValues[maxValues];
-
 //Default Parameters
 int farmLength = 0;
 int farmBreadth = 0;
@@ -69,25 +61,10 @@ unsigned long now;
 char jsonOutput[256];
 //Buffer holder for incoming messages
 char msg_buf[64];
-//Buffer for outgoing messages
-char msgcontrol_buf[128];
 
-
-// Replaces placeholder with required value
-// String processor(const String &var) {
-//   // Serial.println(var);
-//   if (var == "SerialNumber") {
-//     Serial.print("Planter Serial: ");
-//     Serial.println(SerialNumber);
-//     return SerialNumber;
-//   }
-//   return String();
-// }
-
-//Replace with WiFi Manager for smarter connection
-// Set  your desired Access Point credentials.
+// Set desired Access Point credentials.
 const char *ssid = "Planter Bot";
-//const char *password = "yourPassword";
+// const char *password = "yourPassword";
 // const IPAddress apIP(192, 168, 4, 1);
 // const IPAddress netMsk(255, 255, 255, 0);
 
@@ -95,8 +72,8 @@ const char *ssid = "Planter Bot";
 // Create AsyncWebServer object on port of your choice default=80
 AsyncWebServer server(80);
 DNSServer dnsServer;
-WebSocketsServer webSocket = WebSocketsServer(81);  //Default port for websocket is 81.
-WebSocketsServer webSocketControl = WebSocketsServer(100);
+WebSocketsServer webSocket = WebSocketsServer(81);  //Socket for dashboard updates. Default port for websocket is 81.
+WebSocketsServer webSocketControl = WebSocketsServer(100); //Socket for control values
 
 void notFound(AsyncWebServerRequest *request) {
   request->send(404, "text/plain", "Page Not Found");
@@ -192,7 +169,6 @@ void setup() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (SPIFFS.exists("/index.html")) {
       request->send(SPIFFS, "/index.html", "text/html");
-      // request->send(SPIFFS, "/index.html", String(), false, processor);
     } else {
       notFound(request);
     }
@@ -201,7 +177,6 @@ void setup() {
   // Route for login
   server.on("/login", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (SPIFFS.exists("/login.html")) {
-      //      request->send(SPIFFS, "/register.html", String(), false, processor);
       request->send(SPIFFS, "/login.html", "text/html");
     } else {
       notFound(request);
@@ -214,7 +189,6 @@ void setup() {
   // Route for register
   server.on("/register", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (SPIFFS.exists("/register.html")) {
-      // request->send(SPIFFS, "/register.html", String(), false, processor);
       request->send(SPIFFS, "/register.html", "text/html");
     } else {
       notFound(request);
@@ -228,7 +202,6 @@ void setup() {
   server.on("/homepage", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (SPIFFS.exists("/homepage.html")) {
       request->send(SPIFFS, "/homepage.html", "text/html");
-      // request->send(SPIFFS, "/homepage.html", String(), false, processor);
     } else {
       notFound(request);
     }
@@ -237,7 +210,6 @@ void setup() {
   //Route for dashboard
   server.on("/dashboard", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (SPIFFS.exists("/dashboard.html")) {
-      //      request->send(SPIFFS, "/dashboard.html", String(), false, processor);
       request->send(SPIFFS, "/dashboard.html", "text/html");
     } else {
       notFound(request);
@@ -258,24 +230,10 @@ void setup() {
     }
   });
 
-  // Route to collect live controller data
-  // server.on("/send_controls", HTTP_POST, onRequest, onFileUpload, handleControls);
-
-  // Route to view live data
-  server.on("/results", HTTP_GET, [](AsyncWebServerRequest *request) {
-    if (SPIFFS.exists("/controller2.html")) {
-      request->send(SPIFFS, "/controller2.html", "text/html");
-    } else {
-      notFound(request);
-    }
-  });
-
-
   // Route for configure
   server.on("/configure", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (plantingStatus == 0) {
       if (SPIFFS.exists("/configure.html")) {
-        // request->send(SPIFFS, "/configure.html", String(), false, processor);
         request->send(SPIFFS, "/configure.html", "text/html");
       } else {
         notFound(request);
@@ -352,8 +310,6 @@ void loop() {
 
 
 
-
-
 // Function to handle requests
 void databaseExists();
 void handleRegisterJSON();
@@ -385,64 +341,6 @@ bool createDatabaseFile() {
 ///////////////////////////////////////////////////////////
 
 
-
-
-
-
-void handleCollect(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-  if (request->method() == HTTP_POST) {
-
-    Serial.println("POST METHOD: INSTRUCTIONS DETECTED");
-
-    // Convert the uint8_t data to a String
-    String input(reinterpret_cast<char *>(data), len);
-    Serial.println("Received JSON data: " + input);
-
-    DynamicJsonDocument doc(256);
-
-    DeserializationError error = deserializeJson(doc, data);
-
-    if (error) {
-      Serial.print("deserializeJson() failed: ");
-      Serial.println(error.c_str());
-      return;
-    }
-
-    String cropType = doc["cropType"].as<String>();
-    String soilType = doc["soilType"].as<String>();
-    kernelsPerHole = doc["kernelsPerHole"].as<int>();
-    farmLength = doc["farmLength"].as<int>();
-    farmBreadth = doc["farmBreadth"].as<int>();
-    String startingLane = doc["startingLane"].as<String>();
-    String planterStartingPoint = doc["planterStartingPoint"].as<String>();
-
-    ////////////////////////////////////////////////////////////////////////////////
-
-    Serial.println(" ");
-    Serial.print("Crop: ");
-    Serial.println(cropType);
-    Serial.print("Soil: ");
-    Serial.println(soilType);
-    Serial.print("KernelsPerHole: ");
-    Serial.println(kernelsPerHole);
-    Serial.print("FarmLength: ");
-    Serial.println(farmLength);
-    Serial.print("FarmBreadth: ");
-    Serial.println(farmBreadth);
-    Serial.print("StartingLane: ");
-    Serial.println(startingLane);
-    Serial.print("At Starting Point?: ");
-    Serial.println(planterStartingPoint);
-
-    plantingStatus = 1;
-
-    String htmlResponse = "<html><head><script>setTimeout(function(){ window.location.href = '/dashboard'; }, 2000);</script><style>body{align-items:center;}</style></head><body><h1>Instructions sent. Planting will start soon!</h1></body></html>";
-    request->send(200, "text/html", htmlResponse);
-  } else {
-    request->send(405);  // Method Not Allowed
-  }
-}
-
 void handleStop(AsyncWebServerRequest *request) {
   if (plantingStatus == 1) {
     plantingStatus = 0;
@@ -452,45 +350,6 @@ void handleStop(AsyncWebServerRequest *request) {
     String htmlResponse = "<html><head><script>setTimeout(function(){ window.location.href = '/homepage'; }, 4000);</script><style>body{align-items:center;}</style></head><body><h1>Planting Process Currently Not Running. <br> <br> Go to Planting Parameters, To Start Planting!</h1></body></html>";
     request->send(200, "text/html", htmlResponse);
   }
-}
-
-
-void checkUserExists(String firstname, String username, String password, AsyncWebServerRequest *request) {
-  // Check if the user already exists in the database
-  bool userExists = false;
-  JsonArray usersArray = userData.as<JsonArray>();
-  for (JsonObject user : usersArray) {
-    if (user["username"] == username) {
-      userExists = true;
-      break;
-    }
-  }
-
-  if (userExists) {
-    // User already exists, return an error message
-    Serial.println("User already Exists");
-    request->send(400, "text/plain", "Error: User already exists.");
-    return;
-  }
-
-  // Add the new user details to the JSON object
-  JsonObject newUser = userData.createNestedObject();
-  newUser["firstname"] = firstname;
-  newUser["username"] = username;
-  newUser["password"] = password;
-
-  // Open the "userData.json" file in write mode
-  File file = SPIFFS.open("/userData.json", "w");
-  if (!file) {
-    Serial.println("Failed to open file for saving");
-    request->send(500, "text/plain", "Error: Unable to save data.");
-    return;
-  }
-
-  // Save the updated JSON object to the file
-  serializeJson(userData, file);
-  file.close();
-  Serial.println("User registered");
 }
 
 void onWebSocketEvent(uint8_t client_num, WStype_t type, uint8_t *payload, size_t length) {
@@ -580,10 +439,8 @@ void onWebSocketEventControl(uint8_t client_num, WStype_t type, uint8_t *payload
       break;
 
     case WStype_TEXT:
-      // Serial.printf("[%u] Received text: %s\n", client_num, payload);
 
       /************** WebSocket Code to update collect controller values *************/
-      // DynamicJsonDocument logger(256);
 
       DeserializationError error = deserializeJson(parameter_rx, payload);
 
@@ -598,7 +455,6 @@ void onWebSocketEventControl(uint8_t client_num, WStype_t type, uint8_t *payload
         Speed = parameter_rx["speed"].as<int>();
         Angle = parameter_rx["angle"].as<int>();
         velocity = parameter_rx["velocity"].as<int>();
-        //      controldata[] = {x, y, Speed, Angle};
 
         Serial.print("x= " + String(x));
         Serial.print(", y= " + String(y));
@@ -606,11 +462,6 @@ void onWebSocketEventControl(uint8_t client_num, WStype_t type, uint8_t *payload
         Serial.print(", angle= " + String(Angle));
         Serial.print(", velocity=" + String(velocity));
         Serial.println();
-
-        // String response = "Control Received";
-        // sprintf(msgcontrol_buf, "%s", response);
-        // Serial.printf("Sending to [%u]: %s\n", client_num, response);
-        // webSocket.sendTXT(client_num, msgcontrol_buf);
       }
       break;
   }

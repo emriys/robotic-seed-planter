@@ -145,8 +145,6 @@ font-size: xx-large; ">
             Socket.send(data2);
         }
 
-        //SerialNumber = document.getElementById('SerialNumber');
-
         function onOpen(event) {
             console.log("Connected to Websocket...Querying for data...")
             //doSend(data2);
@@ -171,13 +169,14 @@ font-size: xx-large; ">
             console.log("ERROR: " + event.data);
         }
 
-        function doSend(message) {
+        /*function doSend(message) {
             console.log("Sending: " + message);
             Socket.send(message);
-        }
+        }*/
         //window.onload = function(event) {
         //    init();
         //}
+
         window.addEventListener("load", init, false);
         //setTimeout(function() { init() }, 2000);
     </script>
