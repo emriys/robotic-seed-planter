@@ -16,20 +16,20 @@ Users are encouraged to review and understand the terms and conditions of this l
 
 # Robotic Seed Planter
 This is my final year project for my Mechatronics Engineering degree.
-The project goal is to build an autonomous planter for Maize and Beans.
+The goal of the project is to build an unmanned seed planter, with a focus on maize and beans.
 The planter has two ESP32's:
-    One is used as the server and hosts the interface with which the farmer can interact.
-    The other acts as the brain of the planter robot. It collects required parameters from the server as supplied by the farmer, and uses those to decide on which crop to plant and how it will carry out all needed operations.
+    One is used as the Server and hosts the interface with which the farmer can interact.
+    The other is the Brain of the planter bot. It collects required parameters from the server as supplied by the farmer, and uses those to carry out all needed operations.
 
 ## The Server
-    The server is built on the first ESP using ESPAsyncWebServer and the pages are held in the SPIFFS (Serial Peripheral Interface Flash File System). It uses Access Point mode so all operations are completely offline.
+    The server is hosted on one ESP32 using ESPAsyncWebServer. The pages are held in the SPIFFS (Serial Peripheral Interface Flash File System). It uses Access Point mode so all operations are completely offline.
     The server has 8 webpages: Index, Login, SignUp, Homepage, Dashboard, Planting Parameters, Manual Control, and Explore.
     The server uses ESPAsyncWebServer library to host all webpages and uses WebSockets to update all webpages with the required information. WebSockets is also used to collect the control values from the Manual Control webpage which is a joystick.
     All data is shared as Json between webpages and server.
     All user details are also saved into a json file after successful registration.
 
 ## The Brain (a.k.a the Controller)
-
+    The Brain runs on the other ESP32 and works in Station Mode. It connects to the Server via a dedicated websocket connection which allows for two-way communication between the two. 
 
 ## Update: 3rd of August 2023
 - Updated the server-side code to accept form data from the signup webpage.
