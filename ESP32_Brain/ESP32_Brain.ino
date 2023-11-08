@@ -4,8 +4,9 @@
 // ncp=number of columns possible, nrp=number of rows possible
 // nhp=number of holes possible,
 // rws=row spacing,
-// Lf=Length of farm, Bf=Breadth of farm
+// Lf=Length of farm in meters, Bf=Breadth of farm in meters
 // tdc = total distance covered
+// distperRow = total distance possible per row based on farm Length/Breadth and number of holes possible per row
 
 // Include required libraries
 #include <WiFi.h>
@@ -26,13 +27,16 @@ int x = 0, y = 0, Speed = 0, Angle = 0;
 
 //Declare planting parameters
 String cropType = "", soilType = "", stLane = "", planterStartingPoint = "";
-int kernelsPerHole, farmLength, farmBreadth;
+int kernelsPerHole;
+float farmLength, farmBreadth;
 
 //Declare planting variables to update
-float ses, sedep;
-int rws, nhc, nrc, ncp, nrp, nsph, nhp;
-int Lf, Bf;
-int tdc, kernelsph, farmArea;
+int ses, sedep;
+int rws, nhc = 0, nrc = 0, ncp, nrp, nsph, nhp;
+float Lf;
+float Bf;
+float tdc, farmArea;
+int kernelsph;
 
 // Boolean to keep track of the planter's current planting status
 bool plantingStatus = false;
@@ -46,34 +50,34 @@ const char* password = "YOUR_PASSWORD";
 unsigned long connectLost;
 unsigned long mayconnectLost;
 
-// Constants
-const unsigned long SPEED_TIMEOUT = 500000;   // Time used to determine wheel is not spinning
-const unsigned int UPDATE_TIME = 500;         // Time used to output serial data
-const unsigned int BUFFER_SIZE = 16;          // Serial receive buffer size
-const double BAUD_RATE = 115200;              // Serial port baud rate
+// BLDC Wheels dimensions
 const double WHEEL_DIAMETER_IN = 9.75;        // Motor wheel diamater (inches)
 const double WHEEL_CIRCUMFERENCE_IN = 30.64;  // Motor wheel circumference (inches)
 const double WHEEL_DIAMETER_CM = 24.77;       // Motor wheel diamater (centimeters)
 const double WHEEL_CIRCUMFERENCE_CM = 77.82;  // Motor wheel circumference (centimeters)
 
-// // Pin Declarations for one motor
-const int PIN_DIR = 2;    // Motor direction signal
-const int PIN_BRAKE = 3;  // Motor brake signal (active low)
-const int PIN_STOP = 5;
-const int PIN_PWM = 0;     // PWM motor speed control
-const int PIN_SPEED = 12;  // SC Speed Pulse Output from RioRand board
+// Pin Declarations for one motor
+#define PIN_BRAKE 4  // Motor brake signal (Active LOW)
 
-// // Variables used in move function
-double _freq;                               // Frequency of the signal on the speed pin
-double _rpm;                                // Wheel speed in revolutions per minute
-double _mph;                                // Wheel speed in miles per hour
-double _kph;                                // Wheel speed in kilometers per hour
-double _cmps;                               // Wheel speed in centimeters per second
-double totaldistCov;                        // Wheel distance covered in centimeters
-double totaldistCovM = totaldistCov / 100;  // Wheel distance covered in meters
+// Distance variables
+double distperRow;     // Possible distance per row
+double totaldistCovR;  // Wheel distance covered per row
+float totaldistCovM;   // Wheel distance covered totally in meters
 
-int data;
-bool state;
+
+// Declare pins for Drill retractor, Seedmotor, hind wheels, drills relays, and steering relays
+#define drillDeploy 16
+#define drillRetract 17
+#define seedMotor 15
+#define hindWheelsF1 12
+#define hindWheelsB1 14
+#define hindWheelsF2 22
+#define hindWheelsB2 23
+#define drills 13
+#define turnRight 19
+#define turnLeft 21
+
+
 
 /************** SET-UP ****************************************/
 
@@ -81,17 +85,34 @@ void setup() {
   // Initialize Serial Monitor
   Serial.begin(115200);
 
-  // Set pin directions
-  pinMode(PIN_SPEED, INPUT);
-  pinMode(PIN_PWM, OUTPUT);
+  // Set pin modes
   pinMode(PIN_BRAKE, OUTPUT);
-  pinMode(PIN_DIR, OUTPUT);
-  pinMode(PIN_STOP, OUTPUT);
 
-  // // Set initial pin states
+  pinMode(drillDeploy, OUTPUT);
+  pinMode(drillRetract, OUTPUT);
+  pinMode(seedMotor, OUTPUT);
+  pinMode(hindWheelsF1, OUTPUT);
+  pinMode(hindWheelsF2, OUTPUT);
+  pinMode(hindWheelsB1, OUTPUT);
+  pinMode(hindWheelsB2, OUTPUT);
+  pinMode(drills, OUTPUT);
+  pinMode(turnRight, OUTPUT);
+  pinMode(turnLeft, OUTPUT);
+
+  // Set initial pin states
   digitalWrite(PIN_BRAKE, false);
-  digitalWrite(PIN_DIR, false);
-  analogWrite(PIN_PWM, 0);
+  digitalWrite(drillDeploy, HIGH);
+  digitalWrite(drillRetract, HIGH);
+  digitalWrite(seedMotor, HIGH);
+
+  digitalWrite(hindWheelsF1, HIGH);
+  digitalWrite(hindWheelsB1, HIGH);
+  digitalWrite(hindWheelsF2, HIGH);
+  digitalWrite(hindWheelsB2, HIGH);
+
+  digitalWrite(drills, HIGH);
+  digitalWrite(turnRight, HIGH);
+  digitalWrite(turnLeft, HIGH);
 
   // Set device as a Wi-Fi Station and Connect to
   WiFi.mode(WIFI_STA);
@@ -122,6 +143,7 @@ void setup() {
 }
 
 
+
 /************** LOOP ****************************************/
 
 void loop() {
@@ -131,6 +153,7 @@ void loop() {
     Serial.println("WiFi Connection Lost...Retrying");
     delay(1000);
 
+    // Reset plantingStatus if connection to server is lost for more than 20 seconds
     if ((connectLost - mayconnectLost) > 20000) {
       plantingStatus = 0;
     }
@@ -143,13 +166,13 @@ void loop() {
 
 
   //Collect all data from server
-
+  // Serial.println(plantingStatus);
   if (cropType == "maize") {
     if (plantingStatus == true) {
       maize();
     }
   }
-  // farmCalc(Lf, Bf, rws, ses, sedep);
+
   webSocket.loop();
 }
 
@@ -166,19 +189,30 @@ void update() {
 
 int farmCalc(float rws, float ses, float sedep) {
   //Calculations for farm parameters about rows, holes, e.t.c
-  farmArea = Lf * Bf;  //Area of farm in meters
+  Lf = farmLength;
+  Bf = farmBreadth;
+  farmArea = Lf * Bf;  // Area of farm in meters
   int Lfc = Lf * 100;  // Convert Length of farm from meters to centimeters
-  int Bfc = Bf * 100;  //Convert Breadth of farm from meters to centimeters
-  if (stLane == "Length") {
-    nrp = Bfc / rws;          //number of rows possible
-    nhp = (Lfc / ses) * nrp;  //number of holes possible totally
+  int Bfc = Bf * 100;  // Convert Breadth of farm from meters to centimeters
+
+  if (stLane == "length") {
+    nrp = Bfc / rws;  //number of rows possible
+    // Possible distance per row. Add 1 since it starts planting from 0.
+    distperRow = (int(Lfc / ses)) * ses;
+
+    // If total number of holes possible is odd, add 1
+    nhp = ((int(Lfc / ses) + 1) * nrp) * 2;  //number of holes possible totally, drilling 2 simultaneously
 
     return nrp, nhp;
   }
 
-  else if (stLane == "Breadth") {
-    nrp = Lfc / rws;          //number of rows possible
-    nhp = (Bfc / ses) * nrp;  //number of holes possible totally
+  else if (stLane == "breadth") {
+    nrp = Lfc / rws;  //number of rows possible
+    // Possible distance per row. Add 1 since it starts planting from 0.
+    distperRow = (int(Bfc / ses)) * ses;
+
+    // If total number of holes possible is odd, add 1
+    nhp = ((int(Bfc / ses) + 1) * nrp) * 2;  //number of holes possible totally, drilling 2 simultaneously
 
     return nrp, nhp;
   }
@@ -190,24 +224,65 @@ void maize() {
   rws = 84;
   //Planting process sequence
   farmCalc(rws, ses, sedep);
+
   // If planter at starting position
   drill();     // Release then retract drills
   dropSeed();  // Drop seeds into holes
-  AutoMove();  // Move robot to next location
 
-
-  tdc += 10;
+  // Update number of holes completed
   nhc += 2;
-  nrc += 3;
-  Lf = random(500);
-  Bf = random(500);
+  Serial.println((String) "nhc: " + nhc);
+
+  // 1 second delay to give breathing space
+  delay(3000);
+
+  // If total farm distance covered and total holes possible is completed, then stop planting process
+  if (nhc >= nhp) {
+    plantingStatus = false;
+    acknowledge = 0;
+    nrc += 1;
+    stop();
+    Serial.println("Planting DONE...");
+  }
+
+  delay(2000);
+
+  // Check if per row distance is completed then turn, else move forward
+
+  if ((stLane == "length") && (totaldistCovR >= distperRow)) {
+    Serial.println("In Length...");
+    moveToTurn();
+    delay(2000);
+    turn();             // Turn right
+    nrc += 1;           // Update number of rows complted
+    totaldistCovR = 0;  // Reset distance covered per row
+  }
+
+  else if ((stLane == "breadth") && (totaldistCovR >= distperRow)) {
+    Serial.println("In Breadth...");
+    moveToTurn();
+    delay(2000);
+    turn();             // Turn right
+    nrc += 1;           // Update number of rows complted
+    totaldistCovR = 0;  // Reset distance covered per row
+  }
+
+  else {
+    AutoMove();  // Move robot to next location
+    // Update distance travelled after first holes have been dug
+    if (2 <= nhc && nhc <= nhp) {
+      tdc += 13;
+      totaldistCovR += 13;
+      totaldistCovM = tdc / 100;
+    }
+  }
 
   /************ Update server with completed parameters ************/
 
   //Transfer back to Websocket Client on Share
+  // Update Server
   String payload = "";
   JsonObject object = return_tx.to<JsonObject>();
-  // object["sedep"] = sedep;
   object["tdc"] = totaldistCovM;
   object["ses"] = ses;
   object["sedep"] = sedep;
@@ -216,17 +291,32 @@ void maize() {
   object["nrc"] = nrc;
   object["nhp"] = nhp;
   object["nrp"] = nrp;
-  object["Lf"] = Lf;
-  object["Bf"] = Bf;
+  object["Lf"] = farmLength;
+  object["Bf"] = farmBreadth;
   object["farmArea"] = farmArea;
   object["kernelsph"] = kernelsPerHole;
   object["cropType"] = cropType;
   object["soilType"] = soilType;
   object["stLane"] = stLane;
   object["received"] = acknowledge;
-
-
   serializeJson(return_tx, payload);
-
   webSocket.sendTXT(payload);
+
+  #if 1 // Set to 1 to activate or 0 to deactivate
+    Serial.println((String) "nhc: " + nhc);
+    Serial.println((String) "nrc: " + nrc);
+    Serial.println((String) "tdc: " + tdc);
+    Serial.println((String) "Total Row Distance: " + totaldistCovR);
+    Serial.println((String) "Total Distance: " + totaldistCovM);
+  #endif
+
+  // If total farm distance covered and total holes possible is completed, then stop planting process
+  if (nhc >= nhp) {
+    // Reset planting parameters
+    nhc = nhp = nrc = nrp = totaldistCovR = totaldistCovM = tdc = 0;
+    stop();
+    Serial.println("Planting RESET...");
+  }
+
+  delay(5000);
 }

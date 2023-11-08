@@ -1,8 +1,9 @@
-bool checkUserExistsR(const String& firstname, const String& username, const String& password) {
+bool checkUserExistsR(const String& firstname, const String& username, const String& password, const String& admincode_s) {
   // Check if the user already exists in the database
   File file = SPIFFS.open(userDatabase, "r+");
   if (file) {
     bool userExists = false;
+    bool admin_auth = true;
 
     // Read existing data line by line and check for existing usernames
     // Load existing JSON data
@@ -14,11 +15,19 @@ bool checkUserExistsR(const String& firstname, const String& username, const Str
       if (entry["username"] == username) {
         userExists = true;
         // Username exists
+      } else if (admincode_s != adminCode) {
+        admin_auth = false;
+        //Wrong admin code entered by user
       }
     }
 
     if (userExists) {
       Serial.println("Username already exists, registration failed");
+      file.close();
+      return false;
+    }
+    if (!admin_auth) {
+      Serial.println("Admin Code incorrect, registration failed");
       file.close();
       return false;
     } else {
@@ -36,6 +45,7 @@ bool checkUserExistsR(const String& firstname, const String& username, const Str
       obj["firstname"] = firstname;
       obj["username"] = username;
       obj["password"] = password;
+      obj["AdminCode_Entered"] = admincode_s;
 
       // Write the file
       addfile = SPIFFS.open(userDatabase, "w");
@@ -61,7 +71,7 @@ bool checkUserExistsR(const String& firstname, const String& username, const Str
         Serial.println();
       }
 
-      
+
       return true;
     }
 

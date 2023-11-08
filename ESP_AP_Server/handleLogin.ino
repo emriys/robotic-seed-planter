@@ -19,12 +19,14 @@ void handleLogin(AsyncWebServerRequest *request, uint8_t *data, size_t len, size
     String username = log["username"].as<String>();  // "Malouda"
     String password = log["password"].as<String>();  // "agba"
 
-    Serial.println(" ");
-    Serial.print("Username: ");
-    Serial.println(username);
-    Serial.print("Password: ");
-    Serial.println(password);
-
+    #if 1 // Set to 1 to activate or 0 to deactivate
+      Serial.println(" ");
+      Serial.print("Username: ");
+      Serial.println(username);
+      Serial.print("Password: ");
+      Serial.println(password);
+    #endif
+    
     bool userpassMatch = false;
     File file = SPIFFS.open(userDatabase, "r");
     if (!file) {

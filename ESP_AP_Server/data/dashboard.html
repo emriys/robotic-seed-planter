@@ -114,25 +114,32 @@
                 <span class="slider" style="width: 20px; height: 20px; border-radius: 50%; background-color: red; position: absolute; top: 0; left: 0; transition: left 0.4s;"></span>
             </label>
         </div>
+
         <div class="progress-bar-container" style="margin-bottom: 10px;">
-            <p class="progress-label" style="font-weight: bold; margin-bottom: 5px; color: #555;">Holes Dug:</p>
+            <p class="progress-label" style="font-weight: bold; margin-bottom: 5px; color: #555;">Holes Dug: <span id="HComp"></span> / <span id="HPoss"></span></p>
             <div class="progress-bar" style="width: 100%; height: 20px; background-color: #ddd; border-radius: 10px; overflow: hidden;">
-                <div class="fill-bar" style="height: 100%; background-color: #4CAF50; width: 50%;"></div> <!-- Dynamic progress -->
+                <div id="fillbar1" class="fill-bar1" style="height: 100%; background-color: #4CAF50;"></div> <!-- Dynamic progress -->
             </div>
         </div>
+
         <div class="progress-bar-container" style="margin-bottom: 10px;">
-            <p class="progress-label" style="font-weight: bold; margin-bottom: 5px; color: #555;">Rows Completed:</p>
+            <p class="progress-label" style="font-weight: bold; margin-bottom: 5px; color: #555;">Rows Completed: <span id="RComp"></span> / <span id="RPoss"></span></p>
             <div class="progress-bar" style="width: 100%; height: 20px; background-color: #ddd; border-radius: 10px; overflow: hidden;">
-                <div class="fill-bar" style="height: 100%; background-color: #4CAF50; width: 30%;"></div> <!-- Dynamic progress -->
+                <div id="fillbar2" class="fill-bar2" style="height: 100%; background-color: #4CAF50;"></div> <!-- Dynamic progress -->
             </div>
         </div>
-        <p><b>Total Distance Covered:</b> <span id="distanceCovered"></span> m</p>
+        
+        <p><b>Crop Type: </b><span id="cropType"></span></p>
+        <p><b>Soil Type: </b><span id="soilType"></span></p>
+        <p><b>Starting Lane: </b><span id="stLane"></span></p>
+        <p><b>Total Distance Covered: </b><span id="distanceCovered"></span> m</p>
         <p><b> Seed Spacing: </b><span id="currentSeedSpacing"></span> cm</p>
         <p><b>Current Seed Depth: </b><span id="currentSeedDepth"></span> cm</p>
         <p><b>Current Row Spacing: </b><span id="currentRowSpacing"></span> cm</p>
         <p><b>Current Kernels per Hole: </b><span id="currentKernelsPerHole"></span></p>
         <p><b>Farm Length: </b><span id="farmLength"></span> m</p>
         <p><b>Farm Breadth: </b><span id="farmBreadth"></span> m</p>
+        <p><b>Farm Area: </b><span id="farmArea"></span> m²</p>
         <button class="dynamic-button" id="dynamic-button" style="background-color: #3498db;
 			border: none;
 			color: white;
@@ -151,7 +158,7 @@
     <footer style="background-color: #777; color: white; text-align: center; padding: 10px;">
         <div>Planter - Smart gardening</div>
         <div>Serial number: <span id = 'SerialNumber'></span></div>
-        <div>Developed by Salam © 2023</div>
+        <div>Developed by Abdulsalam © 2023</div>
     </footer>
 
 
@@ -160,9 +167,15 @@
 
     <script language="javascript" type="text/javascript">
 
-        var status = 0;
+        var planterStatus = false;
         var toggleValue = false;
 
+        var Hpercent;
+        var Rpercent;
+
+        var holes = document.getElementById("fillbar1");
+        var rows = document.getElementById("fillbar2");
+        
         //if (status == 0) {
         //    document.getElementById("dynamic-button").innerHTML = "Start Planting";
        //} else {
@@ -174,7 +187,7 @@
             const toggleSwitch = document.getElementById('toggleSwitch');
         
             // Simulating receiving value from server (true or false)
-            if (status == 0) {
+            if (planterStatus == false) {
                 toggleValue = false;
             } else {
                 toggleValue = true;
@@ -219,7 +232,7 @@
 		}
 
         function dynamicbuton() {
-            if (status == 0) {
+            if (planterStatus == false) {
                 window.location.href = '/configure';
             } else {
                 window.location.href = '/stopplanting';
@@ -268,27 +281,57 @@
         function processCommand(event) {
             var obj = JSON.parse(event.data);
             document.getElementById('SerialNumber').innerHTML = obj.SerialNumber;
-            document.getElementById('distanceCovered').innerHTML = obj.distanceCovered;
+            document.getElementById('cropType').innerHTML = obj.cropType;
+            document.getElementById('soilType').innerHTML = obj.soilType;
+            document.getElementById('stLane').innerHTML = obj.stLane;
+            document.getElementById('distanceCovered').innerHTML = obj.distanceCovered.toFixed(2);
             document.getElementById('currentSeedSpacing').innerHTML = obj.currentSeedSpacing;
             document.getElementById('currentSeedDepth').innerHTML = obj.currentSeedDepth;
             document.getElementById('currentRowSpacing').innerHTML = obj.currentRowSpacing;
             document.getElementById('currentKernelsPerHole').innerHTML = obj.currentKernelsPerHole;
-            document.getElementById('farmLength').innerHTML = obj.farmLength;
-            document.getElementById('farmBreadth').innerHTML = obj.farmBreadth;
-            status = obj.planterStatus;
+            document.getElementById('farmLength').innerHTML = obj.farmLength.toFixed(2);
+            document.getElementById('farmBreadth').innerHTML = obj.farmBreadth.toFixed(2);
+            document.getElementById('farmArea').innerHTML = obj.farmArea.toFixed(2);
+            document.getElementById('HComp').innerHTML = obj.holesDug;
+            document.getElementById('HPoss').innerHTML = obj.holesPossible;
+            document.getElementById('RComp').innerHTML = obj.rowsCompleted;
+            document.getElementById('RPoss').innerHTML = obj.rowsPossible;
+            planterStatus = obj.planterStatus;
+
+            Hpercent = (obj.holesDug / obj.holesPossible) * 100;
+            Rpercent = (obj.rowsCompleted / obj.rowsPossible) * 100;
+
+            //document.getElementById("fillbar1").style.width = Hpercent + "%";
+            //document.getElementById("fillbar2").style.width = Rpercent + "%";
+            holes.style["width"] = Hpercent + "%";
+            rows.style["width"] = Rpercent + "%";
             document.getElementById("dynamic-button").innerHTML = obj.dynamicbutton;
             toggle();
+
+
             
             console.log("SerialNumber: " + obj.SerialNumber);
+            console.log("cropType: " + obj.cropType);
+            console.log("soilType: " + obj.soilType);
+            console.log("stLane: " + obj.stLane);
             console.log("distanceCovered: " + obj.distanceCovered);
+            console.log("Nwe Dist: " + obj.distanceCovered.toFixed(2))
             console.log("currentSeedSpacing: " + obj.currentSeedSpacing);
             console.log("currentSeedDepth: " + obj.currentSeedDepth);
             console.log("currentRowSpacing: " + obj.currentRowSpacing);
             console.log("currentKernelsPerHole: " + obj.currentKernelsPerHole);
             console.log("farmLength: " + obj.farmLength);
             console.log("farmBreadth: " + obj.farmBreadth);
+            console.log("farmArea: " + obj.farmArea);
+            console.log("HolesComp: " + obj.holesDug);
+            console.log("HolesPoss: " + obj.holesPossible);
+            console.log("RowsComp: " + obj.rowsCompleted);
+            console.log("RowsPoss: " + obj.rowsPossible);
             console.log("plantingStatus: " + obj.planterStatus);
             console.log("Received Message: " + event.data);
+            console.log(planterStatus);
+            console.log("Hpercent: " + Hpercent);
+            console.log("Rpercent: " + Rpercent);
             //var state = event.data;
             //toggleValue = state;
         }

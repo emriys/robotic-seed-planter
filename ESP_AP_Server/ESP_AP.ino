@@ -1,4 +1,5 @@
 
+// Include required libraries
 #include <ESPAsyncWebServer.h>
 #include <AsyncTCP.h>
 #include <SPIFFSEditor.h>
@@ -11,42 +12,56 @@
 #include <WebSocketsServer.h>
 
 String SerialNumber = "0001";
+String adminCode = "";
 
 //Default Parameters
-int farmLength = 0;
-int farmBreadth = 0;
+float farmLength = 0;
+float farmBreadth = 0;
 int kernelsPerHole = 0;
+float farmArea = 0;
 
 // Parameters for planting
-int distanceCovered = 500;
-int currentSeedSpacing = 20;
-int currentSeedDepth = 5;
-int currentRowSpacing = 35;
-int currentKernelsPerHole = kernelsPerHole;
+float totaldistanceCovered = 0;
+int currentSeedSpacing = 0;
+int currentSeedDepth = 0;
+int currentRowSpacing = 0;
+int currentKernelsPerHole = 0;
+int holesDug = 0;
+int rowsCompleted = 0;
+int rowsPossible = 0;
+int holesPossible = 0;
+
+String cropType = " ";
+String soilType = " ";
+String stLane = " ";  // Planter Starting Lane (along Length or Breadth of Farm)
 
 // Get x, y, speed, angle, and velocity values from controls
 int x = 0;
 int y = 0;
 int Speed = 0;
 int Angle = 0;
-int velocity = 0;
-
 
 // User database in JSON format stored in SPIFFS (userData.json)
 const char *userDatabase = "/userData.json";
 
-int currentIndex = 0;
+// int currentIndex = 0;
 
 unsigned long previousMillis = 0;
 
-// Index to keep track of the planter's current planting status
-int plantingStatus = 0;
+// Boolean to keep track of the planter's current planting status
+bool plantingStatus;
 
-// JSON document to store parameter data for transfer to client
+// JSON document to store parameter data for transfer to webpage client
 StaticJsonDocument<1024> parameter_tx;
 
-// JSON document to receive parameter data from client controller
+// JSON document to receive control parameter data from client webpage controller
 StaticJsonDocument<1024> parameter_rx;
+
+// JSON document to receive shared parameter data from brain
+StaticJsonDocument<1024> share_rx;
+
+// JSON document to share details between ESPs
+StaticJsonDocument<1024> return_tx;
 
 // JSON object to store user data
 StaticJsonDocument<1024> userData;
@@ -55,7 +70,6 @@ StaticJsonDocument<1024> userData;
 
 //Timer Interval
 unsigned long now;
-
 
 // Storage for values to update to page
 char jsonOutput[256];
@@ -72,8 +86,9 @@ const char *ssid = "Planter Bot";
 // Create AsyncWebServer object on port of your choice default=80
 AsyncWebServer server(80);
 DNSServer dnsServer;
-WebSocketsServer webSocket = WebSocketsServer(81);  //Socket for dashboard updates. Default port for websocket is 81.
-WebSocketsServer webSocketControl = WebSocketsServer(100); //Socket for control values
+WebSocketsServer webSocket = WebSocketsServer(81);          //Socket for dashboard updates. Default port for websocket is 81.
+WebSocketsServer webSocketControl = WebSocketsServer(100);  //Socket for control values
+WebSocketsServer webSocketShare = WebSocketsServer(120);    //Socket for sharing details between ESPs
 
 void notFound(AsyncWebServerRequest *request) {
   request->send(404, "text/plain", "Page Not Found");
@@ -98,7 +113,8 @@ public:
   }
 };
 
-//===================================================
+
+/************** SET-UP ****************************************/
 
 void setup() {
   // put your setup code here, to run once:
@@ -152,6 +168,7 @@ void setup() {
   Serial.println("Configuring access point...");
 
   // You can remove the password parameter if you want the Access Point to be open.
+  // WiFi.mode(WIFI_AP_STA);
   WiFi.softAP(ssid);
   IPAddress myIP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
@@ -218,21 +235,21 @@ void setup() {
 
   // Route for controller
   server.on("/controller", HTTP_GET, [](AsyncWebServerRequest *request) {
-    if (plantingStatus == 0) {
+    if (plantingStatus == false) {
       if (SPIFFS.exists("/controller.html")) {
         request->send(SPIFFS, "/controller.html", "text/html");
       } else {
         notFound(request);
       }
     } else {
-      String htmlResponse = "<html><head><script>setTimeout(function(){ window.location.href = '/dashboard'; }, 4000);</script><style>body{align-items:center;}</style></head><body><h1>Auto Planting Process currently running, <br> Manual Control NOT ALLOWED!.</h1></body></html>";
+      String htmlResponse = "<html><head><script>setTimeout(function(){ window.location.href = '/dashboard'; }, 4000);</script><style>body{align-items:center;}</style></head><body><h1>Auto Planting Process currently running, <br> Manual Control NOT ALLOWED!</h1></body></html>";
       request->send(200, "text/html", htmlResponse);
     }
   });
 
   // Route for configure
   server.on("/configure", HTTP_GET, [](AsyncWebServerRequest *request) {
-    if (plantingStatus == 0) {
+    if (plantingStatus == false) {
       if (SPIFFS.exists("/configure.html")) {
         request->send(SPIFFS, "/configure.html", "text/html");
       } else {
@@ -246,6 +263,15 @@ void setup() {
 
   //Route to collect planting parameters
   server.on("/collect", HTTP_POST, onRequest, onFileUpload, handleCollect);
+
+  //Route for share
+  server.on("/share", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (SPIFFS.exists("/share.html")) {
+      request->send(SPIFFS, "/share.html", "text/html");
+    } else {
+      notFound(request);
+    }
+  });
 
   //Route to stop planting
   server.on("/stopplanting", HTTP_GET, handleStop);
@@ -262,45 +288,70 @@ void setup() {
   dnsServer.start(53, "*", myIP);
   // server.addHandler(new CaptiveRequestHandler()).setFilter(ON_AP_FILTER);  //only when requested from AP
 
-  // Start server
+  // Start server and websockets
   server.begin();
   webSocket.begin();
   webSocketControl.begin();
+  webSocketShare.begin();
   webSocket.onEvent(onWebSocketEvent);
   webSocketControl.onEvent(onWebSocketEventControl);
+  webSocketShare.onEvent(onWebSocketEventShare);
 
   Serial.println("Server successfully started");
   Serial.println("....");
 }
 
 
+/************** LOOP ****************************************/
+
 void loop() {
   // put your main code here, to run repeatedly:
   dnsServer.processNextRequest();
   webSocket.loop();
   webSocketControl.loop();
+  webSocketShare.loop();
   // onWebSocketEventControl();
 
   now = millis();
+
   /************** WebSocket Code to update all clients on dashboard *************/
   if (now - previousMillis > 1000) {
     //Send data to client
     String jsonString = "";
     JsonObject object = parameter_tx.to<JsonObject>();
-    object["distanceCovered"] = distanceCovered;
+    object["cropType"] = cropType;
+    object["soilType"] = soilType;
+    object["stLane"] = stLane;
+    object["distanceCovered"] = totaldistanceCovered;
     object["currentSeedSpacing"] = currentSeedSpacing;
-    object["currentSeedDepth"] = random(500);  //currentSeedDepth;
+    object["currentSeedDepth"] = currentSeedDepth;  //currentSeedDepth;
     object["currentRowSpacing"] = currentRowSpacing;
-    object["currentKernelsPerHole"] = kernelsPerHole;
-    object["farmLength"] = random(100);  //farmLength;
+    object["currentKernelsPerHole"] = currentKernelsPerHole;
+    object["farmLength"] = farmLength;  //farmLength;
     object["farmBreadth"] = farmBreadth;
+    object["farmArea"] = farmArea;
     object["SerialNumber"] = SerialNumber;
     object["planterStatus"] = plantingStatus;
-    if (plantingStatus == 0) {
+    object["holesDug"] = holesDug;
+    object["rowsCompleted"] = rowsCompleted;
+    object["holesPossible"] = holesPossible;
+    object["rowsPossible"] = rowsPossible;
+
+
+    //Dashboard "Start/Stop" dynamic button display logic
+    if (plantingStatus == false) {
       object["dynamicbutton"] = "Start Planting";
     } else {
       object["dynamicbutton"] = "Stop Planting";
     }
+
+    //Signup "Set/Enter" admincode logic
+    if (adminCode == "") {
+      object["codestatus"] = "Set";
+    } else {
+      object["codestatus"] = "Enter";
+    }
+
     serializeJson(parameter_tx, jsonString);
     // Serial.println(jsonString);
     webSocket.broadcastTXT(jsonString);
@@ -309,6 +360,7 @@ void loop() {
 }
 
 
+/************** FUNCTIONS ****************************************/
 
 // Function to handle requests
 void databaseExists();
@@ -342,10 +394,21 @@ bool createDatabaseFile() {
 
 
 void handleStop(AsyncWebServerRequest *request) {
-  if (plantingStatus == 1) {
-    plantingStatus = 0;
+  if (plantingStatus == true) {
+    plantingStatus = false;
     String htmlResponse = "<html><head><script>setTimeout(function(){ window.location.href = '/dashboard'; }, 3000);</script><style>body{align-items:center;}</style></head><body><h1>Planting Process Stopped!</h1></body></html>";
     request->send(200, "text/html", htmlResponse);
+
+    //Transfer back to Websocket Client on Share
+    String payload3 = "";
+    JsonObject object = return_tx.to<JsonObject>();
+    object["plantingStatus"] = plantingStatus;
+    Serial.println((String) "PlantingStatus: " + plantingStatus);
+
+    serializeJson(return_tx, payload3);
+
+    webSocketShare.broadcastTXT(payload3);
+    // webSocketShare.sendTXT(payload);
   } else {
     String htmlResponse = "<html><head><script>setTimeout(function(){ window.location.href = '/homepage'; }, 4000);</script><style>body{align-items:center;}</style></head><body><h1>Planting Process Currently Not Running. <br> <br> Go to Planting Parameters, To Start Planting!</h1></body></html>";
     request->send(200, "text/html", htmlResponse);
@@ -378,33 +441,6 @@ void onWebSocketEvent(uint8_t client_num, WStype_t type, uint8_t *payload, size_
         webSocket.sendTXT(client_num, msg_buf);
       }
 
-      if (strcmp((char *)payload, "getPlanterStatus") == 0) {
-        if (now - previousMillis > 1000) {
-          //Send data to client
-          String jsonString = "";
-          JsonObject object = parameter_tx.to<JsonObject>();
-          object["distanceCovered"] = distanceCovered;
-          object["currentSeedSpacing"] = currentSeedSpacing;
-          object["currentSeedDepth"] = random(500);
-          object["currentRowSpacing"] = currentRowSpacing;
-          object["currentKernelsPerHole"] = kernelsPerHole;
-          object["farmLength"] = random(100);
-          object["farmBreadth"] = farmBreadth;
-          object["SerialNumber"] = SerialNumber;
-          object["planterStatus"] = plantingStatus;
-          if (plantingStatus == 0) {
-            object["dynamicbutton"] = "Start Planting";
-          } else {
-            object["dynamicbutton"] = "Stop Planting";
-          }
-          serializeJson(parameter_tx, jsonString);
-          Serial.println(jsonString);
-          // webSocket.broadcastTXT(jsonString);
-          webSocket.sendTXT(client_num, jsonString);
-          previousMillis = now;
-        }
-      }
-
       else {
         Serial.println("[%u] Message not recognized!");
       }
@@ -426,7 +462,7 @@ void onWebSocketEventControl(uint8_t client_num, WStype_t type, uint8_t *payload
   switch (type) {
     case WStype_DISCONNECTED:
       // Serial.printf("%[u] Disconnected!\n", client_num);
-      Serial.println("Client Disconnected");
+      Serial.println("Client Disconnected From Control");
       break;
 
     case WStype_CONNECTED:
@@ -434,13 +470,14 @@ void onWebSocketEventControl(uint8_t client_num, WStype_t type, uint8_t *payload
         // IPAddress ip = webSocket.remoteIP(client_num);
         // Serial.printf("[%u] Connection from ", client_num);
         // Serial.println(ip.toString());
-        Serial.println("Client Connected");
+        Serial.println("Client Connected To Control");
       }
       break;
 
     case WStype_TEXT:
 
       /************** WebSocket Code to update collect controller values *************/
+      // Serial.println(payload.as<String>());
 
       DeserializationError error = deserializeJson(parameter_rx, payload);
 
@@ -454,14 +491,122 @@ void onWebSocketEventControl(uint8_t client_num, WStype_t type, uint8_t *payload
         y = parameter_rx["y"].as<int>();
         Speed = parameter_rx["speed"].as<int>();
         Angle = parameter_rx["angle"].as<int>();
-        velocity = parameter_rx["velocity"].as<int>();
 
-        Serial.print("x= " + String(x));
-        Serial.print(", y= " + String(y));
-        Serial.print(", speed= " + String(Speed));
-        Serial.print(", angle= " + String(Angle));
-        Serial.print(", velocity=" + String(velocity));
-        Serial.println();
+        #if 0 // // Set to 1 to activate or 0 to deactivate
+          Serial.print("x= " + String(x));
+          Serial.print(", y= " + String(y));
+          Serial.print(", speed= " + String(Speed));
+          Serial.print(", angle= " + String(Angle));
+        #endif
+
+        if ((-60 < x && x < 60) && y < -150) {
+          Serial.println("Forward...");
+        } else if ((-290 < x && x < -80) && y < -30) {
+          Serial.println("Turning Left...");
+        } else if ((80 < x && x < 290) && y < -30) {
+          Serial.println("Turning Right...");
+        } else if ((-60 < x && x < 60) && y > 150) {
+          Serial.println("Reverse...");
+        } else if ((-290 < x && x < -80) && y > 30) {
+          Serial.println("Reversing Left...");
+        } else if ((80 < x && x < 290) && y > 30) {
+          Serial.println("Reversing Right...");
+        } else {
+          Serial.print("x= " + String(x));
+          Serial.print(", y= " + String(y));
+          Serial.print(", speed= " + String(Speed));
+          Serial.print(", angle= " + String(Angle));
+          Serial.println();
+        }
+
+        // Serial.println();
+
+        //Transfer back to Websocket Client on Share
+        String payload2 = "";
+        JsonObject object = return_tx.to<JsonObject>();
+        object["x"] = x;
+        object["y"] = y;
+        object["speed"] = Speed;
+        object["angle"] = Angle;
+
+        serializeJson(return_tx, payload2);
+
+        // webSocketControl.broadcastTXT(payload2);
+        webSocketShare.broadcastTXT(payload2);
+      }
+      break;
+  }
+}
+
+void onWebSocketEventShare(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
+
+  if (type == WStype_TEXT) {
+    // processs any returned data
+    // Serial.printf("payload [%u]: %s\n", num, payload);
+  }
+
+  //Figure out the Websocket type
+  switch (type) {
+    case WStype_DISCONNECTED:
+      // Serial.printf("%[u] Disconnected!\n", client_num);
+      Serial.println("Client Disconnected From Share");
+      break;
+
+    case WStype_CONNECTED:
+      {
+        // IPAddress ip = webSocket.remoteIP(client_num);
+        // Serial.printf("[%u] Connection from ", client_num);
+        // Serial.println(ip.toString());
+        Serial.println("Client Connected To Share");
+      }
+      break;
+
+    case WStype_TEXT:
+
+      /************** WebSocket Code to update collect controller values *************/
+
+      DeserializationError error = deserializeJson(share_rx, payload);
+
+      if (error) {
+        Serial.print("deserializeJson() failed: ");
+        Serial.println(error.c_str());
+        return;
+      } else {
+        // Get x, y, speed, angle, and velocity values from JSON
+        totaldistanceCovered = share_rx["tdc"].as<float>();
+        currentSeedSpacing = share_rx["ses"].as<float>();
+        currentSeedDepth = share_rx["sedep"].as<float>();
+        currentRowSpacing = share_rx["rws"].as<int>();
+        holesDug = share_rx["nhc"].as<int>();
+        rowsCompleted = share_rx["nrc"].as<int>();
+        holesPossible = share_rx["nhp"].as<int>();
+        rowsPossible = share_rx["nrp"].as<int>();
+        farmLength = share_rx["Lf"].as<float>();
+        farmBreadth = share_rx["Bf"].as<float>();
+        farmArea = share_rx["farmArea"].as<float>();
+        currentKernelsPerHole = share_rx["kernelsph"].as<int>();
+        cropType = share_rx["cropType"].as<String>();
+        soilType = share_rx["soilType"].as<String>();
+        stLane = share_rx["stLane"].as<String>();
+
+
+        //Receive acknowledgement for Planting Parameters
+        int acknowledge = share_rx["received"].as<int>();
+        // Serial.print("Acknowledge ");
+        // Serial.println(acknowledge);
+        if (acknowledge == 1) {
+          plantingStatus = true;
+        } else {
+          plantingStatus = false;
+        }
+
+        #if 0 // Set to 1 to activate or 0 to deactivate
+          Serial.print("x= " + String(x));
+          Serial.print(", y= " + String(y));
+          Serial.print(", speed= " + String(Speed));
+          Serial.print(", angle= " + String(Angle));
+          Serial.println();
+        #endif
       }
       break;
   }

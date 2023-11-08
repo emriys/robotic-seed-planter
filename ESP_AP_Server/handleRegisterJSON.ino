@@ -16,28 +16,32 @@ void handleRegisterJSON(AsyncWebServerRequest *request, uint8_t *data, size_t le
       return;
     }
 
-
-
     String fname = doc["firstname"].as<String>();    // "Idris"
     String username = doc["username"].as<String>();  // "Malouda"
     String password = doc["password"].as<String>();  // "agba"
     int admin_code = doc["admincode"].as<int>();     // "2345"
 
-    Serial.println(" ");
-    Serial.print("FirstName: ");
-    Serial.println(fname);
-    Serial.print("Username: ");
-    Serial.println(username);
-    Serial.print("Password: ");
-    Serial.println(password);
-    Serial.print("Admin-Code: ");
-    Serial.println(admin_code);
+    #if 1 // Set to 1 to activate or 0 to deactivate
+      Serial.println(" ");
+      Serial.print("FirstName: ");
+      Serial.println(fname);
+      Serial.print("Username: ");
+      Serial.println(username);
+      Serial.print("Password: ");
+      Serial.println(password);
+      Serial.print("Admin-Code: ");
+      Serial.println(admin_code);
+    #endif
 
-    // void databaseExists();
-    // databaseExists;
+    if (adminCode == "") {
+      adminCode = doc["admincode"].as<String>();
+    }
+
+    // Changing admin code to string for comparison purpose
+    String admincode_s = doc["admincode"].as<String>();
 
     // Respond with "Registration Successful" page
-    if (checkUserExistsR(fname, username, password)) {
+    if (checkUserExistsR(fname, username, password, admincode_s)) {
       String htmlResponse = "<html><head><script>setTimeout(function(){ window.location.href = '/login'; }, 2000);</script><style>h1{align-items:center;}</style></head><body><h1>Registration Successful</h1></body></html>";
       request->send(200, "text/html", htmlResponse);
     } else {
@@ -47,40 +51,8 @@ void handleRegisterJSON(AsyncWebServerRequest *request, uint8_t *data, size_t le
       request->send(response);
     }
 
-
-
   } else {
     Serial.println("POST request does not have a body.");
     request->send(405);  // Method Not Allowed
   }
 }
-
-// Parse the received JSON data
-// StaticJsonDocument<200> jsonDocument; // Adjust the size according to your JSON data
-// DeserializationError error = deserializeJson(jsonDocument, input);
-
-//// Now you can access the JSON data using the jsonDocument object
-//    const char* value = jsonDocument["key"]; // Replace "key" with your actual JSON key
-
-
-
-//    const char* fname = doc["fname"]; // "Idris"
-//    const char* username = doc["username"]; // "Malouda"
-//    const char* password = doc["password"]; // "agba"
-//    const char* confirm_password = doc["confirm-password"]; // "agba"
-//    const char* admin_code = doc["admin-code"]; // "2345"
-
-//      String fname = doc["firstname"].as<String>(); // "Idris"
-//      String username = doc["username"].as<String>(); // "Malouda"
-//      String password = doc["password"].as<String>(); // "agba"
-//      int admin_code = doc["admin-code"].as<int>(); // "2345"
-
-
-// Save the user data to a file
-//    File file = SPIFFS.open("/users.json", "a");
-//    file.print(firstname + "," + username + "," + password + "\n");
-//    file.close();
-//
-//    // Redirect to the login page
-//    server.sendHeader("Location", "/login");
-//    server.send(302);

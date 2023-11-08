@@ -20,55 +20,75 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
     cropType = doc["cropType"].as<String>();
     soilType = doc["soilType"].as<String>();
     kernelsPerHole = doc["kernelsPerHole"].as<int>();
-    farmLength = doc["farmLength"].as<int>();
-    farmBreadth = doc["farmBreadth"].as<int>();
+    farmLength = doc["farmLength"].as<float>();
+    farmBreadth = doc["farmBreadth"].as<float>();
     stLane = doc["startingLane"].as<String>();
     planterStartingPoint = doc["planterStartingPoint"].as<String>();
 
     plantingStatus = doc["plantingStatus"].as<bool>();
 
-    // Serial.print("Planting Status1: ");
-    // Serial.println(plantingStatus);
-    // Serial.println(" ////");
+    #if 0 // Set to 1 to activate
+      Serial.print("Planting Status1: ");
+      Serial.println(plantingStatus);
+      Serial.println(" ////");
+    #endif
 
-    // if (cropType.length() == 0) {
+    // Check type of information received
     if (doc["cropType"].isNull() && doc["plantingStatus"].isNull()) {
-      Serial.print("x= " + String(x));
-      Serial.print(", y= " + String(y));
-      Serial.print(", speed= " + String(Speed));
-      Serial.print(", angle= " + String(Angle));
-      Serial.println(" ////");
-    } else if (doc["cropType"].isNull() && doc["x"].isNull()) {
-      Serial.println(" ////");
-      Serial.print("Planting Status: ");
-      Serial.println(plantingStatus);
-      Serial.println(" ////");
-      if (plantingStatus == 0) {
-        acknowledge = 0;
-      }
-    } else {
-      Serial.println(" ");
-      Serial.println("/////////////////////////////////////////////////////");
-      Serial.print("Crop: ");
-      Serial.println(cropType);
-      Serial.print("Soil: ");
-      Serial.println(soilType);
-      Serial.print("KernelsPerHole: ");
-      Serial.println(kernelsPerHole);
-      Serial.print("FarmLength: ");
-      Serial.println(farmLength);
-      Serial.print("FarmBreadth: ");
-      Serial.println(farmBreadth);
-      Serial.print("StartingLane: ");
-      Serial.println(stLane);
-      Serial.print("At Starting Point?: ");
-      Serial.println(planterStartingPoint);
-      Serial.println(" ");
+      #if 0  // Set to 1 to activate
+        Serial.print("x= " + String(x));
+        Serial.print(", y= " + String(y));
+        Serial.print(", speed= " + String(Speed));
+        Serial.print(", angle= " + String(Angle));
+        Serial.println(" ////");
+      #endif
+      ManualMove(x, y, Speed, Angle);
 
-      Serial.print("Planting Status: ");
-      Serial.println(plantingStatus);
-      Serial.println("/////////////////////////////////////////////////////");
+    } else if (doc["cropType"].isNull() && doc["x"].isNull()) {
+        #if 1  // Set to 1 to activate or 0 to deactivate
+          Serial.println(" ////");
+          Serial.print("Planting Status: ");
+          Serial.println(plantingStatus);
+          Serial.println(" ////");
+          if (plantingStatus == 0) {
+            acknowledge = 0;
+          }
+        #endif
+    } else {
+      #if 1 // Set to 1 to activate or 0 to deactivate
+        Serial.println(" ");
+        Serial.println("/////////////////////////////////////////////////////");
+        Serial.print("Crop: ");
+        Serial.println(cropType);
+        Serial.print("Soil: ");
+        Serial.println(soilType);
+        Serial.print("KernelsPerHole: ");
+        Serial.println(kernelsPerHole);
+        Serial.print("FarmLength: ");
+        Serial.println(farmLength);
+        Serial.print("FarmBreadth: ");
+        Serial.println(farmBreadth);
+        Serial.print("StartingLane: ");
+        Serial.println(stLane);
+        Serial.print("At Starting Point?: ");
+        Serial.println(planterStartingPoint);
+        Serial.println(" ");
+
+        Serial.print("Planting Status: ");
+        Serial.println(plantingStatus);
+        Serial.println("/////////////////////////////////////////////////////");
+      #endif
       acknowledge = 1;
+
+      /************************ MANUAL TURNING CONFIRMATION ************************/
+      // Check if planter is starting new planting session or resuming after manual turning
+      if (nrc >= nrp) {
+        nhc = nhp = nrc = nrp = totaldistCovR = totaldistCovM = tdc = 0;
+      } else {
+        Serial.println("Resuming Planting...");
+      }
+      /****************************************************************************/
+
 
       // Send acknowledgement to the client
       StaticJsonDocument<200> doc;
@@ -77,10 +97,16 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
       object["received"] = acknowledge;
       serializeJson(doc, payload1);
       webSocket.sendTXT(payload1);
+
+      unsigned long sendstart = millis();
+      unsigned long sendnow = millis();
+
+      while ((sendnow - sendstart) < 10000) {
+        Serial.println("Preparing To Plant...");
+        // Update sendnow
+        sendnow = millis();
+      }
     }
-
-    // Serial.println("/////////////////////////////////////////////////////");
-
 
     webSocket.sendTXT("{\"status\":\"OK\"}");
   }

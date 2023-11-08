@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Share</title>
+    <script>
+        var Socket;
+        function init() {
+            try {
+                Socket = new WebSocket('ws://' + window.location.hostname + ':120/share');
+                
+                Socket.onopen = function(event) {
+                    console.log('WebSocket connection opened.');
+                };
+                
+                Socket.onmessage = function(event) {
+                    // receive the color data from the server
+                    var data = JSON.parse(event.data);
+                    console.log(data);
+                    console.log("Received Message: " + event.data);
+                    document.getElementById('x_coordinate').innerHTML = data.x;
+                    document.getElementById('y_coordinate').innerHTML = data.y;
+                    document.getElementById('speed').innerHTML = data.speed;
+                    document.getElementById('angle').innerHTML = data.angle;
+                    document.getElementById('cropType').innerHTML = data.cropType;
+                    document.getElementById('soilType').innerHTML = data.soilType;
+                    document.getElementById('kernelsPerHole').innerHTML = data.kernelsPerHole;
+                    document.getElementById('farmLength').innerHTML = data.farmLength;
+                    document.getElementById('farmBreadth').innerHTML = data.farmBreadth;
+                    document.getElementById('startingLane').innerHTML = data.startingLane;
+                    document.getElementById('planterStartingPoint').innerHTML = data.planterStartingPoint;
+                };
+                
+                Socket.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                };
+                
+                Socket.onclose = function(event) {
+                    if (event.wasClean) {
+                        console.log('WebSocket closed cleanly, code=' + event.code + ', reason=' + event.reason);
+                    } else {
+                        console.error('WebSocket connection broken.');
+                    }
+                };
+            } catch (error) {
+                console.error('WebSocket connection failed:', error);
+            }
+        }
+
+        window.addEventListener("load", init, false);
+    </script>
+</head>
+<body onload="init()">
+    <h4>WebSocket client served from the Sensor Board!</h4>
+    <div>
+        <p style="text-align: center">
+            X: <span id="x_coordinate"> </span>
+            Y: <span id="y_coordinate"> </span>
+            Speed: <span id="speed"> </span> %
+            Angle: <span id="angle"> </span>
+        </p>
+    </div>
+    <div>
+        <p style="text-align: center">
+            Crop: <span id="cropType"> </span>,
+            Soil Type: <span id="soilType"> </span>,
+            kernelsPerHole: <span id="kernelsPerHole"> </span>,
+            <br>
+            farmLength: <span id="farmLength"> </span> m,
+            farmBreadth: <span id="farmBreadth"> </span> m,
+            startingLane: <span id="startingLane"> </span>,
+            <br>
+            planterStartingPoint: <span id="planterStartingPoint"> </span>
+        </p>
+    </div>
+</body>
+</html>
