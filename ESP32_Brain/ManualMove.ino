@@ -3,17 +3,32 @@ void ManualMove(int x, int y, int Speed, int Angle) {
 
   if ((-60 < x && x < 60) && y < -150) {
     Serial.println("Forward...");
-    digitalWrite(hindWheelsF1, LOW);
-    digitalWrite(hindWheelsB1, HIGH);
 
-    // // Left hindWheel forward
+    // Turn off the steering motor
+    digitalWrite(turnRight, HIGH);
+    digitalWrite(turnLeft, HIGH);
+
+    // Left hindWheel forward ACTIVE LOW
     // digitalWrite(hindWheelsF1, LOW);
     // digitalWrite(hindWheelsB1, HIGH);
 
-    // // Right hindWheel backward
+    // // Right hindWheel forward
     // digitalWrite(hindWheelsF2, LOW);
     // digitalWrite(hindWheelsB2, HIGH);
-  }
+
+    // Turn off brake
+    digitalWrite(PIN_BRAKE, HIGH);  // RELAY ACTIVE LOW, Driver Active HIGH
+
+    // These relays are ACTIVE HIGH
+    // Left hindWheel forward
+    digitalWrite(hindWheelsF1, HIGH);
+    digitalWrite(hindWheelsB1, LOW);
+
+    // Right hindWheel forward
+    digitalWrite(hindWheelsF2, HIGH);
+    digitalWrite(hindWheelsB2, LOW);
+
+}
 
   else if ((-290 < x && x < -80) && y < -30) {
     Serial.println("Turning Left...");
@@ -48,16 +63,34 @@ void ManualMove(int x, int y, int Speed, int Angle) {
 
   else if ((-60 < x && x < 60) && y > 150) {
     Serial.println("Reverse...");
-    digitalWrite(hindWheelsF1, HIGH);
-    digitalWrite(hindWheelsB1, LOW);
 
-    // // Left hindWheel reverse
+    // Turn off brake
+    digitalWrite(PIN_BRAKE, HIGH);  // RELAY ACTIVE LOW, Driver Active HIGH
+
+    // Turn off the steering motor ACTIVE LOW
+    digitalWrite(turnRight, HIGH);
+    digitalWrite(turnLeft, HIGH);
+
+    // Left hindWheel reverse ACTIVE LOW
     // digitalWrite(hindWheelsF1, HIGH);
     // digitalWrite(hindWheelsB1, LOW);
 
     // // Right hindwheel reverse
     // digitalWrite(hindWheelsF2, HIGH);
     // digitalWrite(hindWheelsB2, LOW);
+
+    // Turn off brake
+    digitalWrite(PIN_BRAKE, HIGH);  // RELAY ACTIVE LOW, Driver Active HIGH
+
+    // These relays are ACTIVE HIGH
+    // Left hindWheel forward
+    digitalWrite(hindWheelsF1, LOW);
+    digitalWrite(hindWheelsB1, HIGH);
+
+    // Right hindWheel backward
+    digitalWrite(hindWheelsF2, LOW);
+    digitalWrite(hindWheelsB2, HIGH);
+
   }
 
   else if ((-290 < x && x < -80) && y > 30) {
@@ -76,25 +109,32 @@ void ManualMove(int x, int y, int Speed, int Angle) {
 
   else {
     Serial.println("Stationary...");
-    digitalWrite(hindWheelsF1, HIGH);
-    digitalWrite(hindWheelsB1, HIGH);
 
-    stop();
+    // Turn on brake
+    digitalWrite(PIN_BRAKE, LOW);  // RELAY ACTIVE LOW, Driver Active HIGH
 
-    // Stop the hind wheels
+    // Turn off the steering motor ACTIVE LOW
+    digitalWrite(turnRight, HIGH);
+    digitalWrite(turnLeft, HIGH);
+
+    // Stop the hind wheels ACTIVE LOW
     // digitalWrite(hindWheelsF1, HIGH);
     // digitalWrite(hindWheelsB1, HIGH);
     // digitalWrite(hindWheelsF2, HIGH);
     // digitalWrite(hindWheelsB2, HIGH);
 
-    // Turn off the steering motor
-    digitalWrite(turnRight, HIGH);
-    digitalWrite(turnLeft, HIGH);
+    // Stop the hind wheels ACTIVE HIGH
+    digitalWrite(hindWheelsF1, LOW);
+    digitalWrite(hindWheelsB1, LOW);
+    digitalWrite(hindWheelsF2, LOW);
+    digitalWrite(hindWheelsB2, LOW);
 
-    // Serial.print("x= " + String(x));
-    // Serial.print(", y= " + String(y));
-    // Serial.print(", speed= " + String(Speed));
-    // Serial.print(", angle= " + String(Angle));
-    // Serial.println();
+    #if 0 // Set to 1 to activate and 0 to deactivate
+    Serial.print("x= " + String(x));
+    Serial.print(", y= " + String(y));
+    Serial.print(", speed= " + String(Speed));
+    Serial.print(", angle= " + String(Angle));
+    Serial.println();
+    #endif
   }
 }

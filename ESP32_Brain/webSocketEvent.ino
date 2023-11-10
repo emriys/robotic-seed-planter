@@ -79,6 +79,7 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
         Serial.println("/////////////////////////////////////////////////////");
       #endif
       acknowledge = 1;
+      plantingReset == 0;
 
       /************************ MANUAL TURNING CONFIRMATION ************************/
       // Check if planter is starting new planting session or resuming after manual turning

@@ -34,6 +34,7 @@ int holesPossible = 0;
 String cropType = " ";
 String soilType = " ";
 String stLane = " ";  // Planter Starting Lane (along Length or Breadth of Farm)
+String needturn = " ";
 
 // Get x, y, speed, angle, and velocity values from controls
 int x = 0;
@@ -273,6 +274,17 @@ void setup() {
     }
   });
 
+    //Route for retsrting server
+  server.on("/restartserver", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (SPIFFS.exists("/dashboard.html")) {
+      String htmlResponse = "<html><head><script>setTimeout(function(){ window.location.href = '/homepage'; }, 10000);</script><style>body{align-items:center;}</style></head><body><h1>Restarting Server...wait 10 seconds</h1></body></html>";
+      request->send(200, "text/html", htmlResponse);
+      ESP.restart();
+    } else {
+      notFound(request);
+    }
+  });
+
   //Route to stop planting
   server.on("/stopplanting", HTTP_GET, handleStop);
 
@@ -315,7 +327,8 @@ void loop() {
   now = millis();
 
   /************** WebSocket Code to update all clients on dashboard *************/
-  if (now - previousMillis > 1000) {
+  // Update every 2 seconds
+  if (now - previousMillis > 2000) {
     //Send data to client
     String jsonString = "";
     JsonObject object = parameter_tx.to<JsonObject>();
@@ -336,14 +349,21 @@ void loop() {
     object["rowsCompleted"] = rowsCompleted;
     object["holesPossible"] = holesPossible;
     object["rowsPossible"] = rowsPossible;
+    object["turn"] = needturn;
 
 
-    //Dashboard "Start/Stop" dynamic button display logic
-    if (plantingStatus == false) {
+    //Dashboard "Start/Stop/Resume" dynamic button display logic
+    if ((0 < holesDug) && (holesDug < holesPossible) && (rowsCompleted > 0) && (rowsCompleted < rowsPossible) && (plantingStatus == false)) {
+      object["dynamicbutton"] = "Resume Planting";
+      object["turn"] = "Row completed, please turn manually";
+    } else if (plantingStatus == false) {
       object["dynamicbutton"] = "Start Planting";
+      object["turn"] = " ";
     } else {
       object["dynamicbutton"] = "Stop Planting";
+      object["turn"] = " ";
     }
+
 
     //Signup "Set/Enter" admincode logic
     if (adminCode == "") {
@@ -492,7 +512,7 @@ void onWebSocketEventControl(uint8_t client_num, WStype_t type, uint8_t *payload
         Speed = parameter_rx["speed"].as<int>();
         Angle = parameter_rx["angle"].as<int>();
 
-        #if 0 // // Set to 1 to activate or 0 to deactivate
+        #if 0  // // Set to 1 to activate or 0 to deactivate
           Serial.print("x= " + String(x));
           Serial.print(", y= " + String(y));
           Serial.print(", speed= " + String(Speed));
@@ -588,7 +608,7 @@ void onWebSocketEventShare(uint8_t num, WStype_t type, uint8_t *payload, size_t 
         cropType = share_rx["cropType"].as<String>();
         soilType = share_rx["soilType"].as<String>();
         stLane = share_rx["stLane"].as<String>();
-
+        needturn = share_rx["needturn"].as<String>();
 
         //Receive acknowledgement for Planting Parameters
         int acknowledge = share_rx["received"].as<int>();
@@ -600,7 +620,7 @@ void onWebSocketEventShare(uint8_t num, WStype_t type, uint8_t *payload, size_t 
           plantingStatus = false;
         }
 
-        #if 0 // Set to 1 to activate or 0 to deactivate
+        #if 0  // Set to 1 to activate or 0 to deactivate
           Serial.print("x= " + String(x));
           Serial.print(", y= " + String(y));
           Serial.print(", speed= " + String(Speed));

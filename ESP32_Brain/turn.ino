@@ -4,6 +4,9 @@ void turn() {
   while ((turnnow - turnStart) < 5000) {
     Serial.println("Turning Right.....");
 
+    //Turn off brake
+    digitalWrite(PIN_BRAKE, HIGH);  // RELAY ACTIVE LOW, Driver Active HIGH
+
     // Assuming CW as right
     digitalWrite(turnRight, LOW);
     digitalWrite(turnLeft, HIGH);

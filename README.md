@@ -28,7 +28,7 @@ The planter has two ESP32's:
     All data is shared as Json between webpages and server.
     All user details are also saved into a json file after successful registration.
 
-## The Brain (a.k.a the Controller)
+## The Brain
     The Brain runs on the other ESP32 and works in Station Mode. It connects to the Server via a dedicated websocket connection which allows for two-way communication between the two. 
 
 ## Update: 3rd of August 2023
@@ -58,7 +58,7 @@ The planter has two ESP32's:
 - Added websocket server to update the Dashboard webpage with required information.
 
 ## Update: 4th Sep 2023
-- Added server code to send error message to Login and SignUp pages upon failed verification.
+- Added server code and send error message to Login and SignUp pages upon failed verification.
 - Connected all webpages to previously created websocket server.
 - Added dedicated websocket server to collect control values from Manual Control webpage instead of POST method, thereby increasing speed of transmission.
 - Added dynamic "Start/Stop Planting" button for Dashboard.

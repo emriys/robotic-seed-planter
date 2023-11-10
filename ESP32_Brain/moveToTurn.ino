@@ -10,16 +10,17 @@ void moveToTurn() {
 
     while ((wheelNow - wheelStart) < 5) {
       Serial.println("MOVING TO TURN..........");
+
+      //Turn off brake
+      digitalWrite(PIN_BRAKE, HIGH);  // RELAY ACTIVE LOW, Driver Active HIGH
+
+      // Left hindWheel forward
       digitalWrite(hindWheelsF1, LOW);
       digitalWrite(hindWheelsB1, HIGH);
 
-      // // Left hindWheel forward
-      // digitalWrite(hindWheelsF1, LOW);
-      // digitalWrite(hindWheelsB1, HIGH);
-
-      // // Right hindWheel backward
-      // digitalWrite(hindWheelsF2, LOW);
-      // digitalWrite(hindWheelsB2, HIGH);
+      // Right hindWheel backward
+      digitalWrite(hindWheelsF2, LOW);
+      digitalWrite(hindWheelsB2, HIGH);
 
       Serial.println("HIND WHEELS FORWARD TO TURN..........");
 

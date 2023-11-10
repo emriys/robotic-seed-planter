@@ -29,6 +29,7 @@ int x = 0, y = 0, Speed = 0, Angle = 0;
 String cropType = "", soilType = "", stLane = "", planterStartingPoint = "";
 int kernelsPerHole;
 float farmLength, farmBreadth;
+unsigned long drillTime;  // Time to reach required depth in milliseconds
 
 //Declare planting variables to update
 int ses, sedep;
@@ -41,6 +42,7 @@ int kernelsph;
 // Boolean to keep track of the planter's current planting status
 bool plantingStatus = false;
 int acknowledge;
+int plantingReset = 0;
 
 // Initialize network parameters
 const char* ssid = "Planter Bot";
@@ -57,7 +59,7 @@ const double WHEEL_DIAMETER_CM = 24.77;       // Motor wheel diamater (centimete
 const double WHEEL_CIRCUMFERENCE_CM = 77.82;  // Motor wheel circumference (centimeters)
 
 // Pin Declarations for one motor
-#define PIN_BRAKE 4  // Motor brake signal (Active LOW)
+#define PIN_BRAKE 0  // Motor brake signal (Active LOW)
 
 // Distance variables
 double distperRow;     // Possible distance per row
@@ -73,7 +75,8 @@ float totaldistCovM;   // Wheel distance covered totally in meters
 #define hindWheelsB1 14
 #define hindWheelsF2 22
 #define hindWheelsB2 23
-#define drills 13
+#define drillsF1 13
+#define drillsB1 25
 #define turnRight 19
 #define turnLeft 21
 
@@ -95,22 +98,34 @@ void setup() {
   pinMode(hindWheelsF2, OUTPUT);
   pinMode(hindWheelsB1, OUTPUT);
   pinMode(hindWheelsB2, OUTPUT);
-  pinMode(drills, OUTPUT);
+  pinMode(drillsF1, OUTPUT);
+  pinMode(drillsB1, OUTPUT);
   pinMode(turnRight, OUTPUT);
   pinMode(turnLeft, OUTPUT);
 
   // Set initial pin states
-  digitalWrite(PIN_BRAKE, false);
+
+  //Turn on brake
+  digitalWrite(PIN_BRAKE, LOW);  // RELAY ACTIVE LOW, Driver Active HIGH
+
   digitalWrite(drillDeploy, HIGH);
   digitalWrite(drillRetract, HIGH);
   digitalWrite(seedMotor, HIGH);
+  
+  // ACTIVE LOW
+  // digitalWrite(hindWheelsF1, HIGH);
+  // digitalWrite(hindWheelsB1, HIGH);
+  // digitalWrite(hindWheelsF2, HIGH);
+  // digitalWrite(hindWheelsB2, HIGH);
 
-  digitalWrite(hindWheelsF1, HIGH);
-  digitalWrite(hindWheelsB1, HIGH);
-  digitalWrite(hindWheelsF2, HIGH);
-  digitalWrite(hindWheelsB2, HIGH);
+  // ACTIVE HIGH
+  digitalWrite(hindWheelsF1, LOW);
+  digitalWrite(hindWheelsB1, LOW);
+  digitalWrite(hindWheelsF2, LOW);
+  digitalWrite(hindWheelsB2, LOW);
 
-  digitalWrite(drills, HIGH);
+  digitalWrite(drillsF1, HIGH);
+  digitalWrite(drillsB1, HIGH);
   digitalWrite(turnRight, HIGH);
   digitalWrite(turnLeft, HIGH);
 
@@ -164,14 +179,27 @@ void loop() {
     }
   }
 
+  webSocket.loop();
 
-  //Collect all data from server
-  // Serial.println(plantingStatus);
+  // Turn on brake
+  digitalWrite(PIN_BRAKE, LOW);  // RELAY ACTIVE LOW, Driver Active HIGH
+
   if (cropType == "maize") {
+    if (plantingReset == 0) {update();}
     if (plantingStatus == true) {
       maize();
     }
   }
+
+  if (cropType == "beans") {
+    if (plantingReset == 0) {update();}
+    if (plantingStatus == true) {
+      beans();
+    }
+  }
+
+  // Constantly update server
+  // update();
 
   webSocket.loop();
 }
@@ -180,11 +208,32 @@ void loop() {
 /************** FUNCTIONS ****************************************/
 
 void webSocketEvent();
-// void move();
+// void Automove();
 void drill();
 void dropSeed();
 
 void update() {
+  StaticJsonDocument<512> update;
+  String payload6 = "";
+  JsonObject object = update.to<JsonObject>();
+  object["tdc"] = totaldistCovM;
+  object["ses"] = ses;
+  object["sedep"] = sedep;
+  object["rws"] = rws;
+  object["nhc"] = nhc;
+  object["nrc"] = nrc;
+  object["nhp"] = nhp;
+  object["nrp"] = nrp;
+  object["Lf"] = farmLength;
+  object["Bf"] = farmBreadth;
+  object["farmArea"] = farmArea;
+  object["kernelsph"] = kernelsPerHole;
+  object["cropType"] = cropType;
+  object["soilType"] = soilType;
+  object["stLane"] = stLane;
+  object["received"] = acknowledge;
+  serializeJson(update, payload6);
+  webSocket.sendTXT(payload6);
 }
 
 int farmCalc(float rws, float ses, float sedep) {
@@ -222,8 +271,42 @@ void maize() {
   ses = 13;
   sedep = 11;
   rws = 84;
+
+  // Time required to reach seed depth
+  drillTime = 1;
+
   //Planting process sequence
   farmCalc(rws, ses, sedep);
+
+  // Update server before planting
+  if (plantingStatus == true) {
+    acknowledge = 1;
+    // Update Server
+    StaticJsonDocument<512> returner;
+    String payload4 = "";
+    JsonObject object = returner.to<JsonObject>();
+    object["tdc"] = totaldistCovM;
+    object["ses"] = ses;
+    object["sedep"] = sedep;
+    object["rws"] = rws;
+    object["nhc"] = nhc;
+    object["nrc"] = nrc;
+    object["nhp"] = nhp;
+    object["nrp"] = nrp;
+    object["Lf"] = farmLength;
+    object["Bf"] = farmBreadth;
+    object["farmArea"] = farmArea;
+    object["kernelsph"] = kernelsPerHole;
+    object["cropType"] = cropType;
+    object["soilType"] = soilType;
+    object["stLane"] = stLane;
+    object["received"] = acknowledge;
+    serializeJson(returner, payload4);
+    webSocket.sendTXT(payload4);
+  }
+
+  // Turn on brake
+  digitalWrite(PIN_BRAKE, LOW);  // RELAY ACTIVE LOW, Driver Active HIGH
 
   // If planter at starting position
   drill();     // Release then retract drills
@@ -233,8 +316,8 @@ void maize() {
   nhc += 2;
   Serial.println((String) "nhc: " + nhc);
 
-  // 1 second delay to give breathing space
-  delay(3000);
+  // 2 second delay to give breathing space
+  delay(2000);
 
   // If total farm distance covered and total holes possible is completed, then stop planting process
   if (nhc >= nhp) {
@@ -251,20 +334,39 @@ void maize() {
 
   if ((stLane == "length") && (totaldistCovR >= distperRow)) {
     Serial.println("In Length...");
-    moveToTurn();
+    stop();
+    //Auto turning
+    // moveToTurn();
+    // turn();        // Turn right
+
     delay(2000);
-    turn();             // Turn right
     nrc += 1;           // Update number of rows complted
     totaldistCovR = 0;  // Reset distance covered per row
+
+    // Stop planting
+    plantingStatus = false;
+    acknowledge = 0;
+
+    Serial.println("Waiting for manual turning...");
   }
 
   else if ((stLane == "breadth") && (totaldistCovR >= distperRow)) {
     Serial.println("In Breadth...");
-    moveToTurn();
+    stop();
+
+    // Auto turning
+    // moveToTurn();
+    // turn();             // Turn right
+
     delay(2000);
-    turn();             // Turn right
     nrc += 1;           // Update number of rows complted
     totaldistCovR = 0;  // Reset distance covered per row
+    
+    // Stop planting
+    plantingStatus = false;
+    acknowledge = 0;
+    
+    Serial.println("Waiting for manual turning...");
   }
 
   else {
@@ -314,9 +416,168 @@ void maize() {
   if (nhc >= nhp) {
     // Reset planting parameters
     nhc = nhp = nrc = nrp = totaldistCovR = totaldistCovM = tdc = 0;
+    plantingReset = 1;
     stop();
     Serial.println("Planting RESET...");
   }
+  update();
+  delay(5000);
+}
 
+void beans() {
+  ses = 13;
+  sedep = 4;
+  rws = 91;
+
+  // Time required to reach seed depth
+  drillTime = 1;
+
+  //Planting process sequence
+  farmCalc(rws, ses, sedep);
+
+  // Update server before planting
+  if (plantingStatus == true) {
+    acknowledge = 1;
+    // Update Server
+    StaticJsonDocument<512> returnerB;
+    String payload7 = "";
+    JsonObject object = returnerB.to<JsonObject>();
+    object["tdc"] = totaldistCovM;
+    object["ses"] = ses;
+    object["sedep"] = sedep;
+    object["rws"] = rws;
+    object["nhc"] = nhc;
+    object["nrc"] = nrc;
+    object["nhp"] = nhp;
+    object["nrp"] = nrp;
+    object["Lf"] = farmLength;
+    object["Bf"] = farmBreadth;
+    object["farmArea"] = farmArea;
+    object["kernelsph"] = kernelsPerHole;
+    object["cropType"] = cropType;
+    object["soilType"] = soilType;
+    object["stLane"] = stLane;
+    object["received"] = acknowledge;
+    serializeJson(returnerB, payload7);
+    webSocket.sendTXT(payload7);
+  }
+
+  // Turn on brake
+  digitalWrite(PIN_BRAKE, LOW);  // RELAY ACTIVE LOW, Driver Active HIGH
+
+  // If planter at starting position
+  drill();     // Release then retract drills
+  dropSeed();  // Drop seeds into holes
+
+  // Update number of holes completed
+  nhc += 2;
+  Serial.println((String) "nhc: " + nhc);
+
+  // 2 second delay to give breathing space
+  delay(2000);
+
+  // If total farm distance covered and total holes possible is completed, then stop planting process
+  if (nhc >= nhp) {
+    plantingStatus = false;
+    acknowledge = 0;
+    nrc += 1;
+    stop();
+    Serial.println("Planting DONE...");
+  }
+
+  delay(2000);
+
+  // Check if per row distance is completed then turn, else move forward
+
+  if ((stLane == "length") && (totaldistCovR >= distperRow)) {
+    Serial.println("In Length...");
+    stop();
+    //Auto turning
+    // moveToTurn();
+    // turn();        // Turn right
+
+    delay(2000);
+    nrc += 1;           // Update number of rows complted
+    totaldistCovR = 0;  // Reset distance covered per row
+
+    // Stop planting
+    plantingStatus = false;
+    acknowledge = 0;
+
+    Serial.println("Waiting for manual turning...");
+  }
+
+  else if ((stLane == "breadth") && (totaldistCovR >= distperRow)) {
+    Serial.println("In Breadth...");
+    stop();
+
+    // Auto turning
+    // moveToTurn();
+    // turn();             // Turn right
+
+    delay(2000);
+    nrc += 1;           // Update number of rows complted
+    totaldistCovR = 0;  // Reset distance covered per row
+    
+    // Stop planting
+    plantingStatus = false;
+    acknowledge = 0;
+    
+    Serial.println("Waiting for manual turning...");
+  }
+
+  else {
+    AutoMove();  // Move robot to next location
+    // Update distance travelled after first holes have been dug
+    if (2 <= nhc && nhc <= nhp) {
+      tdc += 13;
+      totaldistCovR += 13;
+      totaldistCovM = tdc / 100;
+    }
+  }
+
+  /************ Update server with completed parameters ************/
+
+  //Transfer back to Websocket Client on Share
+  // Update Server
+  String payload = "";
+  JsonObject object = return_tx.to<JsonObject>();
+  object["tdc"] = totaldistCovM;
+  object["ses"] = ses;
+  object["sedep"] = sedep;
+  object["rws"] = rws;
+  object["nhc"] = nhc;
+  object["nrc"] = nrc;
+  object["nhp"] = nhp;
+  object["nrp"] = nrp;
+  object["Lf"] = farmLength;
+  object["Bf"] = farmBreadth;
+  object["farmArea"] = farmArea;
+  object["kernelsph"] = kernelsPerHole;
+  object["cropType"] = cropType;
+  object["soilType"] = soilType;
+  object["stLane"] = stLane;
+  object["received"] = acknowledge;
+  serializeJson(return_tx, payload);
+  webSocket.sendTXT(payload);
+
+  #if 1 // Set to 1 to activate or 0 to deactivate
+    Serial.println((String) "nhc: " + nhc);
+    Serial.println((String) "nrc: " + nrc);
+    Serial.println((String) "tdc: " + tdc);
+    Serial.println((String) "Total Row Distance: " + totaldistCovR);
+    Serial.println((String) "Total Distance: " + totaldistCovM);
+  #endif
+
+  // If total farm distance covered and total holes possible is completed, then stop planting process
+  if (nhc >= nhp) {
+    // Reset planting parameters
+    nhc = nhp = nrc = nrp = totaldistCovR = totaldistCovM = tdc = 0;
+    plantingReset = 1;
+    stop();
+    Serial.println("Planting RESET...");
+  }
+  
+  update();
   delay(5000);
 }
