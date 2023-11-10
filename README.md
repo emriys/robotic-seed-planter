@@ -22,14 +22,14 @@ The planter has two ESP32's:
     The other is the Brain of the planter bot. It collects required parameters from the server as supplied by the farmer, and uses those to carry out all needed operations.
 
 ## The Server
-    The server is hosted on one ESP32 using ESPAsyncWebServer. The pages are held in the SPIFFS (Serial Peripheral Interface Flash File System). It uses Access Point mode so all operations are completely offline.
-    The server has 8 webpages: Index, Login, SignUp, Homepage, Dashboard, Planting Parameters, Manual Control, and Explore.
-    The server uses ESPAsyncWebServer library to host all webpages and uses WebSockets to update all webpages with the required information. WebSockets is also used to collect the control values from the Manual Control webpage which is a joystick.
-    All data is shared as Json between webpages and server.
-    All user details are also saved into a json file after successful registration.
+- The server is hosted on one ESP32 using ESPAsyncWebServer. The pages are held in the SPIFFS (Serial Peripheral Interface Flash File System). It uses Access Point mode so all operations are completely offline.
+- The server has 8 webpages: Index, Login, SignUp, Homepage, Dashboard, Planting Parameters, Manual Control, and Explore.
+- The server uses ESPAsyncWebServer library to host all webpages and uses WebSockets to update all webpages with the required information. WebSockets is also used to collect the control values from the Manual Control webpage which is a joystick.
+- All data is shared as Json between webpages and server.
+- All user details are also saved into a json file after successful registration.
 
 ## The Brain
-    The Brain runs on the other ESP32 and works in Station Mode. It connects to the Server via a dedicated websocket connection which allows for two-way communication between the two. 
+- The Brain runs on the other ESP32 and works in Station Mode. It connects to the Server via a dedicated websocket connection which allows for two-way communication between the two. 
 
 ## Update: 3rd of August 2023
 - Updated the server-side code to accept form data from the signup webpage.
