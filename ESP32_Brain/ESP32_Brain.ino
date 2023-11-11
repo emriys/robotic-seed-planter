@@ -23,7 +23,7 @@ StaticJsonDocument<200> doc;
 StaticJsonDocument<1024> return_tx;
 
 //Declare control variables
-int x = 0, y = 0, Speed = 0, Angle = 0;
+int x = 0, y = 0, Speed = 0, Angle = 0, brakeSet, brakeState = 0;
 
 //Declare planting parameters
 String cropType = "", soilType = "", stLane = "", planterStartingPoint = "";
@@ -59,7 +59,7 @@ const double WHEEL_DIAMETER_CM = 24.77;       // Motor wheel diamater (centimete
 const double WHEEL_CIRCUMFERENCE_CM = 77.82;  // Motor wheel circumference (centimeters)
 
 // Pin Declarations for one motor
-#define PIN_BRAKE 0  // Motor brake signal (Active LOW)
+#define PIN_BRAKE 4  // Motor brake signal (Active LOW)
 
 // Distance variables
 double distperRow;     // Possible distance per row
@@ -107,6 +107,7 @@ void setup() {
 
   //Turn on brake
   digitalWrite(PIN_BRAKE, LOW);  // RELAY ACTIVE LOW, Driver Active HIGH
+  brakeState = 1;
 
   digitalWrite(drillDeploy, HIGH);
   digitalWrite(drillRetract, HIGH);
@@ -179,10 +180,10 @@ void loop() {
     }
   }
 
-  webSocket.loop();
+  // webSocket.loop();
 
-  // Turn on brake
-  digitalWrite(PIN_BRAKE, LOW);  // RELAY ACTIVE LOW, Driver Active HIGH
+  // // Turn on brake
+  // digitalWrite(PIN_BRAKE, LOW);  // RELAY ACTIVE LOW, Driver Active HIGH
 
   if (cropType == "maize") {
     if (plantingReset == 0) {update();}
@@ -232,6 +233,7 @@ void update() {
   object["soilType"] = soilType;
   object["stLane"] = stLane;
   object["received"] = acknowledge;
+  // object["brakeState"] = brakeState;
   serializeJson(update, payload6);
   webSocket.sendTXT(payload6);
 }
@@ -301,6 +303,7 @@ void maize() {
     object["soilType"] = soilType;
     object["stLane"] = stLane;
     object["received"] = acknowledge;
+    // object["brakeState"] = brakeState;
     serializeJson(returner, payload4);
     webSocket.sendTXT(payload4);
   }
@@ -401,6 +404,7 @@ void maize() {
   object["soilType"] = soilType;
   object["stLane"] = stLane;
   object["received"] = acknowledge;
+  // object["brakeState"] = brakeState;
   serializeJson(return_tx, payload);
   webSocket.sendTXT(payload);
 

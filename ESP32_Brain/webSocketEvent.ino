@@ -16,6 +16,7 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
     y = doc["y"].as<int>();
     Speed = doc["speed"].as<int>();
     Angle = doc["angle"].as<int>();
+    brakeSet = doc["brakeValue"].as<int>();
 
     cropType = doc["cropType"].as<String>();
     soilType = doc["soilType"].as<String>();
@@ -40,9 +41,21 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
         Serial.print(", y= " + String(y));
         Serial.print(", speed= " + String(Speed));
         Serial.print(", angle= " + String(Angle));
+        Serial.print(", brakeState= " + String(brakeState));
         Serial.println(" ////");
       #endif
-      ManualMove(x, y, Speed, Angle);
+
+      if (brakeSet == 0) {
+        // Turn off brake
+        digitalWrite(PIN_BRAKE, HIGH);  // RELAY ACTIVE LOW, Driver Active HIGH
+        brakeState = brakeSet;
+      } else {
+        // Turn on brake
+        digitalWrite(PIN_BRAKE, LOW);  // RELAY ACTIVE LOW, Driver Active HIGH
+        brakeState = brakeSet;
+      }
+
+      ManualMove(x, y, Speed, Angle, brakeSet);
 
     } else if (doc["cropType"].isNull() && doc["x"].isNull()) {
         #if 1  // Set to 1 to activate or 0 to deactivate

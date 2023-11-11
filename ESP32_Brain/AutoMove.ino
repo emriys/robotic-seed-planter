@@ -3,6 +3,7 @@ void AutoMove() {
 
     // Turn off brake
     digitalWrite(PIN_BRAKE, HIGH);  // RELAY ACTIVE LOW, Driver Active HIGH
+    brakeState = 0;
 
 
     /************************** FORWARD ****************************/
@@ -86,6 +87,7 @@ void AutoMove() {
 
     // Turn on brake
     digitalWrite(PIN_BRAKE, LOW);  // RELAY ACTIVE LOW, Driver Active HIGH
+    brakeState = 1;
 
   }
 }

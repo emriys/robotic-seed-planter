@@ -1,7 +1,18 @@
-void ManualMove(int x, int y, int Speed, int Angle) {
+void ManualMove(int x, int y, int Speed, int Angle, int brakeSet) {
   // RELAYS ARE ACTIVE LOW
 
-  if ((-60 < x && x < 60) && y < -150) {
+  // Turn ON or OFF the brake
+  // if (brakeSet == 0) {
+  //     // Turn off brake
+  //     digitalWrite(PIN_BRAKE, HIGH);  // RELAY ACTIVE LOW, Driver Active HIGH
+  //     brakeState = brakeSet;
+  //   } else {
+  //     // Turn on brake
+  //     digitalWrite(PIN_BRAKE, LOW);  // RELAY ACTIVE LOW, Driver Active HIGH
+  //     brakeState = brakeSet;
+  // }
+
+  if ((-60 < x && x < 60) && y < -150 && brakeSet == 0) {
     Serial.println("Forward...");
 
     // Turn off the steering motor
@@ -61,7 +72,7 @@ void ManualMove(int x, int y, int Speed, int Angle) {
     // digitalWrite(hindWheelsB2, HIGH);
   }
 
-  else if ((-60 < x && x < 60) && y > 150) {
+  else if ((-60 < x && x < 60) && y > 150&& brakeSet == 0) {
     Serial.println("Reverse...");
 
     // Turn off brake
@@ -110,8 +121,8 @@ void ManualMove(int x, int y, int Speed, int Angle) {
   else {
     Serial.println("Stationary...");
 
-    // Turn on brake
-    digitalWrite(PIN_BRAKE, LOW);  // RELAY ACTIVE LOW, Driver Active HIGH
+    // // Turn on brake
+    // digitalWrite(PIN_BRAKE, LOW);  // RELAY ACTIVE LOW, Driver Active HIGH
 
     // Turn off the steering motor ACTIVE LOW
     digitalWrite(turnRight, HIGH);
@@ -134,6 +145,7 @@ void ManualMove(int x, int y, int Speed, int Angle) {
     Serial.print(", y= " + String(y));
     Serial.print(", speed= " + String(Speed));
     Serial.print(", angle= " + String(Angle));
+    Serial.print(", brake= " + String(brakeSet));
     Serial.println();
     #endif
   }

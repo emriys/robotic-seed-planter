@@ -36,16 +36,18 @@ String soilType = " ";
 String stLane = " ";  // Planter Starting Lane (along Length or Breadth of Farm)
 String needturn = " ";
 
-// Get x, y, speed, angle, and velocity values from controls
+// Get x, y, speed, angle, and brake values from controls
 int x = 0;
 int y = 0;
 int Speed = 0;
 int Angle = 0;
+int brakeValue = 0;
 
 // User database in JSON format stored in SPIFFS (userData.json)
 const char *userDatabase = "/userData.json";
 
-// int currentIndex = 0;
+// State of brake to update server
+int brakeState;
 
 unsigned long previousMillis = 0;
 
@@ -511,21 +513,23 @@ void onWebSocketEventControl(uint8_t client_num, WStype_t type, uint8_t *payload
         y = parameter_rx["y"].as<int>();
         Speed = parameter_rx["speed"].as<int>();
         Angle = parameter_rx["angle"].as<int>();
+        brakeValue = parameter_rx["brakeSet"].as<int>();
 
         #if 0  // // Set to 1 to activate or 0 to deactivate
           Serial.print("x= " + String(x));
           Serial.print(", y= " + String(y));
           Serial.print(", speed= " + String(Speed));
           Serial.print(", angle= " + String(Angle));
+          Serial.print(", brake= " + String(brakeValue));
         #endif
 
-        if ((-60 < x && x < 60) && y < -150) {
+        if ((-60 < x && x < 60) && y < -150 && brakeValue == 0) {
           Serial.println("Forward...");
         } else if ((-290 < x && x < -80) && y < -30) {
           Serial.println("Turning Left...");
         } else if ((80 < x && x < 290) && y < -30) {
           Serial.println("Turning Right...");
-        } else if ((-60 < x && x < 60) && y > 150) {
+        } else if ((-60 < x && x < 60) && y > 150 && brakeValue == 0) {
           Serial.println("Reverse...");
         } else if ((-290 < x && x < -80) && y > 30) {
           Serial.println("Reversing Left...");
@@ -536,6 +540,7 @@ void onWebSocketEventControl(uint8_t client_num, WStype_t type, uint8_t *payload
           Serial.print(", y= " + String(y));
           Serial.print(", speed= " + String(Speed));
           Serial.print(", angle= " + String(Angle));
+          Serial.print(", brake= " + String(brakeValue));
           Serial.println();
         }
 
@@ -548,6 +553,7 @@ void onWebSocketEventControl(uint8_t client_num, WStype_t type, uint8_t *payload
         object["y"] = y;
         object["speed"] = Speed;
         object["angle"] = Angle;
+        object["brakeValue"] = brakeValue;
 
         serializeJson(return_tx, payload2);
 
@@ -609,6 +615,7 @@ void onWebSocketEventShare(uint8_t num, WStype_t type, uint8_t *payload, size_t 
         soilType = share_rx["soilType"].as<String>();
         stLane = share_rx["stLane"].as<String>();
         needturn = share_rx["needturn"].as<String>();
+        brakeState = share_rx["brakeState"].as<int>();
 
         //Receive acknowledgement for Planting Parameters
         int acknowledge = share_rx["received"].as<int>();
@@ -627,6 +634,17 @@ void onWebSocketEventShare(uint8_t num, WStype_t type, uint8_t *payload, size_t 
           Serial.print(", angle= " + String(Angle));
           Serial.println();
         #endif
+
+        //Transfer back to Websocket Client on Share
+        StaticJsonDocument<200> brake_state;
+        String payload9 = "";
+        JsonObject object = brake_state.to<JsonObject>();
+        object["brakeState"] = brakeValue;
+
+        serializeJson(brake_state, payload9);
+
+        // webSocketControl.broadcastTXT(payload2);
+        webSocketControl.broadcastTXT(payload9);
       }
       break;
   }

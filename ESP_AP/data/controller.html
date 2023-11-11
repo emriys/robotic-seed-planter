@@ -92,6 +92,17 @@
         .homepage-link:hover {
             text-decoration: underline;
         }
+
+        .brake-button {
+            position: relative;
+            display: inline-block;
+            margin-left: 50px;
+            margin-right: auto;
+            font-size: 30px;
+            border-radius: 10px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
     </style>
     
 </head>
@@ -108,14 +119,30 @@ font-size: xx-large; ">
         <a href="/controller">Manual Control</a>
         <a href="/explore">Explore</a>
     </div>
-    <h1 style="text-align:center"> PLANTER BOT CONTROLS</h1>
-    <h2 style="text-align: center">...lets get moving</h2>
+    <h1 style="text-align:center"> PLANTER BOT CONTROL</h1>
+    <h3 style="text-align: center">...lets get moving
+        <span class="button-container">
+            <button class="brake-button" id="brake" type="button" value="" onclick="brakeSet()" > <!--  -->
+            
+            </button>
+        </span>
+    </h3>
     <p style="text-align: center">
         X: <span id="x_coordinate"> </span>
         Y: <span id="y_coordinate"> </span>
         Speed: <span id="speed"> </span> %
         Angle: <span id="angle"> </span>
+        <!-- Direction: <span id="direction"> </span> -->
     </p>
+
+    <!-- <div class="button-container">
+        <button class="brake-button" id="brake" type="submit">Cast Vote</button>
+    </div> -->
+    
+    <div style="text-align: center; align-items: center">
+        <b>Direction:</b> <span id="direction"> </span>
+    </div>
+
     <canvas id="canvas" name="game"></canvas>
 
     <script>
@@ -140,7 +167,7 @@ font-size: xx-large; ">
 
         //var data;
         function send(x,y,speed,angle) {
-            var data = {"x":x,"y":y,"speed":speed,"angle":angle};
+            var data = {"x":x,"y":y,"speed":speed,"angle":angle,"brakeSet":brakeValue};
             var data2 = JSON.stringify(data);
             console.log(data2);
             Socket.send(data2);
@@ -162,6 +189,10 @@ font-size: xx-large; ">
 
         //Callback Function
         function processCommand(event) {
+            var obj = JSON.parse(event.data);
+            //brakeValue = obj.brakeState;
+            //brakeState();
+            console.log("Brake: " + brakeValue);
             //console.log("Received: " + obj.planterStatus);
             console.log("Received Message: " + event.data);
             
@@ -185,6 +216,7 @@ font-size: xx-large; ">
     
     <script>
         var canvas, ctx, dataInterval;
+        var brakeValue;
 
         window.addEventListener('load', () => {
             canvas = document.getElementById('canvas'); //get html element
@@ -206,6 +238,10 @@ font-size: xx-large; ">
             document.getElementById("y_coordinate").innerText = 0;
             document.getElementById("speed").innerText = 0;
             document.getElementById("angle").innerText = 0;
+            print(document.getElementById("x_coordinate").innerText, document.getElementById("y_coordinate").innerText);
+            brakeSet();
+            brakeState;
+
         });
 
       
@@ -319,7 +355,10 @@ font-size: xx-large; ">
                 document.getElementById("speed").innerText = speed;
                 document.getElementById("angle").innerText = angle_in_degrees;
 
+                print(x_relative, y_relative);
+
                 send(x_relative,y_relative,speed,angle_in_degrees);
+                
             }
         } 
 
@@ -333,6 +372,7 @@ font-size: xx-large; ">
             document.getElementById("speed").innerText = 0;
             document.getElementById("angle").innerText = 0;
 
+            print(document.getElementById("x_coordinate").innerText, document.getElementById("y_coordinate").innerText);
         }
 
          // Start sending data at an interval of 500 milliseconds (adjust as needed)
@@ -344,7 +384,31 @@ font-size: xx-large; ">
             send(x_relative, y_relative, speed, angle);
         }
         , 500); // Adjust the interval time (in milliseconds) as needed
-        
+
+        function print(x, y) {
+
+            if ((-60 < x && x < 60) && y < -150  && brakeValue == 0) {
+                document.getElementById("direction").innerText = "Forward";
+            }
+            else if ((-290 < x && x < -80) && y < -30) {
+                document.getElementById("direction").innerText = "Steer Left";
+            }
+            else if ((80 < x && x < 290) && y < -30) {
+                document.getElementById("direction").innerText = "Steer Right";
+            }
+            else if ((-60 < x && x < 60) && y > 150  && brakeValue == 0) {
+                document.getElementById("direction").innerText = "Reversing";
+            }
+            else if ((-290 < x && x < -80) && y > 30) {
+                document.getElementById("direction").innerText = "Reverse Left";
+            }
+            else if ((80 < x && x < 290) && y > 30) {
+                document.getElementById("direction").innerText = "Reverse Right";
+            }
+            else {
+                document.getElementById("direction").innerText = "Stationary";
+            }
+        }
 
         // Navigation Bar logic
         //document.getElementById('main').addEventListener('click', closeNav);
@@ -360,6 +424,30 @@ font-size: xx-large; ">
 		document.getElementById("main").style.marginLeft = "0";
 		document.querySelector('#body').addEventListener('click', closeNav)
 		}
+
+        function brakeSet() {
+            const buttonvalue = document.getElementById('brake').value;
+            if (buttonvalue == "0") {
+                brake.style.backgroundColor = '#4CAF50';
+                document.getElementById('brake').innerHTML = "Brake ON";
+                brakeValue = 1;
+                document.getElementById('brake').value = brakeValue;
+                //brakeValue = document.getElementById('brake').value;
+                console.log(brakeValue);
+
+            } else {
+                brake.style.backgroundColor = '#ccc';
+                document.getElementById('brake').innerHTML = "Brake OFF";
+                brakeValue = 0;
+                document.getElementById('brake').value = brakeValue;
+                //brakeValue = document.getElementById('brake').value;
+                console.log(brakeValue);
+            }
+        }
+
+        function brakeState() {
+            document.getElementById('brake').value = brakeValue;
+        }
     </script>
 </body>
 </html>
