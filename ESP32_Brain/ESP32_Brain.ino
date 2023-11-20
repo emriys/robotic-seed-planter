@@ -20,7 +20,7 @@ WebSocketsClient webSocket;
 StaticJsonDocument<200> doc;
 
 // JSON document to return updated data to server ESP
-StaticJsonDocument<1024> return_tx;
+StaticJsonDocument<512> return_tx;
 
 //Declare control variables
 int x = 0, y = 0, Speed = 0, Angle = 0, brakeSet, brakeState = 0;
@@ -29,7 +29,7 @@ int x = 0, y = 0, Speed = 0, Angle = 0, brakeSet, brakeState = 0;
 String cropType = "", soilType = "", stLane = "", planterStartingPoint = "";
 int kernelsPerHole;
 float farmLength, farmBreadth;
-unsigned long drillTime;  // Time to reach required depth in milliseconds
+unsigned long drillTime, retractTime, seedTime;  // Time to reach required depth in milliseconds
 
 //Declare planting variables to update
 int ses, sedep;
@@ -236,6 +236,7 @@ void update() {
   // object["brakeState"] = brakeState;
   serializeJson(update, payload6);
   webSocket.sendTXT(payload6);
+  Serial.println("Updated");
 }
 
 int farmCalc(float rws, float ses, float sedep) {
@@ -274,8 +275,10 @@ void maize() {
   sedep = 11;
   rws = 84;
 
-  // Time required to reach seed depth
+  // Time required to achieve each phase of planting
   drillTime = 1;
+  retractTime = 1;
+  seedTime = 1;
 
   //Planting process sequence
   farmCalc(rws, ses, sedep);
@@ -313,6 +316,9 @@ void maize() {
 
   // If planter at starting position
   drill();     // Release then retract drills
+  if (plantingStatus == false) {
+    
+  }
   dropSeed();  // Drop seeds into holes
 
   // Update number of holes completed
@@ -424,7 +430,7 @@ void maize() {
     stop();
     Serial.println("Planting RESET...");
   }
-  update();
+
   delay(5000);
 }
 
@@ -433,8 +439,10 @@ void beans() {
   sedep = 4;
   rws = 91;
 
-  // Time required to reach seed depth
-  drillTime = 1;
+  // Time required to achieve each phase of planting
+  drillTime = 67000;
+  retractTime = 1;
+  seedTime = 1;
 
   //Planting process sequence
   farmCalc(rws, ses, sedep);
@@ -582,6 +590,5 @@ void beans() {
     Serial.println("Planting RESET...");
   }
   
-  update();
   delay(5000);
 }

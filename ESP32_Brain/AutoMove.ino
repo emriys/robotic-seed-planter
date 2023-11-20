@@ -12,7 +12,7 @@ void AutoMove() {
     unsigned long wheelStart = millis() / 1000;
     unsigned long wheelNow = millis() / 1000;
 
-    while ((wheelNow - wheelStart) < 20) {
+    while ((wheelNow - wheelStart) < 20 && plantingStatus == true) {
       Serial.println("MOVING..........");
 
       // These relays are ACTIVE LOW

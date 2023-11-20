@@ -118,7 +118,13 @@ font-size: xx-large; ">
         <a href="/configure">Planting Parameters</a>
         <a href="/controller">Manual Control</a>
         <a href="/explore">Explore</a>
+        <br/>
+        <br/>
+        <br/>
+        <br>
+        <a href="/rebootserver">Reboot Server</a>
     </div>
+
     <h1 style="text-align:center"> PLANTER BOT CONTROL</h1>
     <h3 style="text-align: center">...lets get moving
         <span class="button-container">
@@ -134,10 +140,6 @@ font-size: xx-large; ">
         Angle: <span id="angle"> </span>
         <!-- Direction: <span id="direction"> </span> -->
     </p>
-
-    <!-- <div class="button-container">
-        <button class="brake-button" id="brake" type="submit">Cast Vote</button>
-    </div> -->
     
     <div style="text-align: center; align-items: center">
         <b>Direction:</b> <span id="direction"> </span>
@@ -240,7 +242,7 @@ font-size: xx-large; ">
             document.getElementById("angle").innerText = 0;
             print(document.getElementById("x_coordinate").innerText, document.getElementById("y_coordinate").innerText);
             brakeSet();
-            brakeState;
+            //brakeState();
 
         });
 

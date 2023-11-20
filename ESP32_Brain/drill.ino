@@ -4,7 +4,7 @@ void drill() {
     // Deploy drill motor (ACTIVE LOW)
     unsigned long drillStart = millis();
     unsigned long drillnow = millis();
-    while ((drillnow - drillStart) < 10000) {
+    while ((drillnow - drillStart) < 10000 && plantingStatus == true) {
       Serial.println("Drilling Soil.....");
       // // Turn on drills
       // digitalWrite(drillsF1, LOW);
@@ -41,7 +41,7 @@ void drill() {
     // Retract drill motor and turn them off
     unsigned long retractStart = millis();
     unsigned long retractnow = millis();
-    while ((retractnow - retractStart) < 10000) {
+    while ((retractnow - retractStart) < 10000 && plantingStatus == true) {
       Serial.println("Retracting .....");
 
       // Reverse drills

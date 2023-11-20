@@ -55,19 +55,19 @@ unsigned long previousMillis = 0;
 bool plantingStatus;
 
 // JSON document to store parameter data for transfer to webpage client
-StaticJsonDocument<1024> parameter_tx;
+StaticJsonDocument<800> parameter_tx;
 
 // JSON document to receive control parameter data from client webpage controller
-StaticJsonDocument<1024> parameter_rx;
+StaticJsonDocument<512> parameter_rx;
 
 // JSON document to receive shared parameter data from brain
-StaticJsonDocument<1024> share_rx;
+StaticJsonDocument<800> share_rx;
 
 // JSON document to share details between ESPs
-StaticJsonDocument<1024> return_tx;
+StaticJsonDocument<512> return_tx;
 
 // JSON object to store user data
-StaticJsonDocument<1024> userData;
+StaticJsonDocument<256> userData;
 
 // char jsonDatabase[128];
 
@@ -84,6 +84,15 @@ const char *ssid = "Planter Bot";
 // const char *password = "yourPassword";
 // const IPAddress apIP(192, 168, 4, 1);
 // const IPAddress netMsk(255, 255, 255, 0);
+
+// Declare pins for Manual Control
+#define turnRight 19
+#define turnLeft 21
+#define hindWheelsF1 12
+#define hindWheelsB1 14
+#define hindWheelsF2 22
+#define hindWheelsB2 23
+#define PIN_BRAKE 4  // Motor brake signal (Active LOW)
 
 
 // Create AsyncWebServer object on port of your choice default=80
@@ -276,12 +285,34 @@ void setup() {
     }
   });
 
-    //Route for retsrting server
-  server.on("/restartserver", HTTP_GET, [](AsyncWebServerRequest *request) {
+  //Route for restarting server
+  server.on("/rebootserver", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (SPIFFS.exists("/dashboard.html")) {
-      String htmlResponse = "<html><head><script>setTimeout(function(){ window.location.href = '/homepage'; }, 10000);</script><style>body{align-items:center;}</style></head><body><h1>Restarting Server...wait 10 seconds</h1></body></html>";
+      String htmlResponse = "<html><head><script>setTimeout(function(){ window.location.href = '/homepage'; }, 10000);</script><style>body{align-items:center;}</style></head><body><h1>Rebooting Server...wait 10 seconds</h1></body></html>";
       request->send(200, "text/html", htmlResponse);
       ESP.restart();
+    } else {
+      notFound(request);
+    }
+  });
+
+  //Route for restarting brain/robot
+  server.on("/rebootbrain", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (SPIFFS.exists("/dashboard.html")) {
+      String htmlResponse = "<html><head><script>setTimeout(function(){ window.location.href = '/homepage'; }, 5000);</script><style>body{align-items:center;}</style></head><body><h1>Rebooting Planter...wait 5 seconds</h1></body></html>";
+      request->send(200, "text/html", htmlResponse);
+      rebootBrain();
+    } else {
+      notFound(request);
+    }
+  });
+
+    //Route for resume planting
+  server.on("/resumeplanting", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (SPIFFS.exists("/dashboard.html")) {
+      String htmlResponse = "<html><head><script>setTimeout(function(){ window.location.href = '/homepage'; }, 5000);</script><style>body{align-items:center;}</style></head><body><h1>Resuming Planting in 5 seconds</h1></body></html>";
+      request->send(200, "text/html", htmlResponse);
+      resumePlanting();
     } else {
       notFound(request);
     }
@@ -414,6 +445,27 @@ bool createDatabaseFile() {
 
 ///////////////////////////////////////////////////////////
 
+void rebootBrain() {
+  String Restart = "Yes";
+  StaticJsonDocument<56> restart;
+  String payload5 = "";
+  JsonObject object = restart.to<JsonObject>();
+  object["restart"] = Restart;
+  serializeJson(restart, payload5);
+  webSocketShare.broadcastTXT(payload5);
+  Serial.println("Rebooting Brain...");
+}
+
+void resumePlanting() {
+  String Resume = "Yes";
+  StaticJsonDocument<56> resume;
+  String payload1 = "";
+  JsonObject object = resume.to<JsonObject>();
+  object["resume"] = Resume;
+  serializeJson(resume, payload1);
+  webSocketShare.broadcastTXT(payload1);
+  Serial.println("Resuming Planting...");
+}
 
 void handleStop(AsyncWebServerRequest *request) {
   if (plantingStatus == true) {
@@ -489,9 +541,6 @@ void onWebSocketEventControl(uint8_t client_num, WStype_t type, uint8_t *payload
 
     case WStype_CONNECTED:
       {
-        // IPAddress ip = webSocket.remoteIP(client_num);
-        // Serial.printf("[%u] Connection from ", client_num);
-        // Serial.println(ip.toString());
         Serial.println("Client Connected To Control");
       }
       break;
@@ -520,56 +569,200 @@ void onWebSocketEventControl(uint8_t client_num, WStype_t type, uint8_t *payload
           Serial.print(", y= " + String(y));
           Serial.print(", speed= " + String(Speed));
           Serial.print(", angle= " + String(Angle));
-          Serial.print(", brake= " + String(brakeValue));
+          Serial.println(", brake= " + String(brakeValue));
         #endif
 
-        if ((-60 < x && x < 60) && y < -150 && brakeValue == 0) {
-          Serial.println("Forward...");
-        } else if ((-290 < x && x < -80) && y < -30) {
-          Serial.println("Turning Left...");
-        } else if ((80 < x && x < 290) && y < -30) {
-          Serial.println("Turning Right...");
-        } else if ((-60 < x && x < 60) && y > 150 && brakeValue == 0) {
-          Serial.println("Reverse...");
-        } else if ((-290 < x && x < -80) && y > 30) {
-          Serial.println("Reversing Left...");
-        } else if ((80 < x && x < 290) && y > 30) {
-          Serial.println("Reversing Right...");
-        } else {
-          Serial.print("x= " + String(x));
-          Serial.print(", y= " + String(y));
-          Serial.print(", speed= " + String(Speed));
-          Serial.print(", angle= " + String(Angle));
-          Serial.print(", brake= " + String(brakeValue));
-          Serial.println();
-        }
+        // if ((-60 < x && x < 60) && y < -150 && brakeValue == 0) {
+        //   Serial.println("Forward...");
+        // } else if ((-290 < x && x < -80) && y < -30) {
+        //   Serial.println("Turning Left...");
+        // } else if ((80 < x && x < 290) && y < -30) {
+        //   Serial.println("Turning Right...");
+        // } else if ((-60 < x && x < 60) && y > 150 && brakeValue == 0) {
+        //   Serial.println("Reverse...");
+        // } else if ((-290 < x && x < -80) && y > 30) {
+        //   Serial.println("Reversing Left...");
+        // } else if ((80 < x && x < 290) && y > 30) {
+        //   Serial.println("Reversing Right...");
+        // } else {
+        //   Serial.print("x= " + String(x));
+        //   Serial.print(", y= " + String(y));
+        //   Serial.print(", speed= " + String(Speed));
+        //   Serial.print(", angle= " + String(Angle));
+        //   Serial.print(", brake= " + String(brakeValue));
+        //   Serial.println();
+        // }
 
         // Serial.println();
 
         //Transfer back to Websocket Client on Share
-        String payload2 = "";
-        JsonObject object = return_tx.to<JsonObject>();
-        object["x"] = x;
-        object["y"] = y;
-        object["speed"] = Speed;
-        object["angle"] = Angle;
-        object["brakeValue"] = brakeValue;
+        // String payload2 = "";
+        // JsonObject object = return_tx.to<JsonObject>();
+        // object["x"] = x;
+        // object["y"] = y;
+        // object["speed"] = Speed;
+        // object["angle"] = Angle;
+        // object["brakeValue"] = brakeValue;
 
-        serializeJson(return_tx, payload2);
+        // serializeJson(return_tx, payload2);
 
-        // webSocketControl.broadcastTXT(payload2);
-        webSocketShare.broadcastTXT(payload2);
+        // // webSocketControl.broadcastTXT(payload2);
+        // webSocketShare.broadcastTXT(payload2);
+
+        // Set brakeState
+        if (brakeValue == 0) {
+          // Turn off brake
+          digitalWrite(PIN_BRAKE, HIGH);  // RELAY ACTIVE LOW, Driver Active HIGH
+          brakeValue = brakeValue;
+        } else {
+          // Turn on brake
+          digitalWrite(PIN_BRAKE, LOW);  // RELAY ACTIVE LOW, Driver Active HIGH
+          brakeValue = brakeValue;
+        }
+        // Control Wheels RELAYS ARE ACTIVE LOW
+        if ((-60 < x && x < 60) && y < -150 && brakeValue == 0) {
+          Serial.println("Forward...");
+
+          // Turn off the steering motor
+          digitalWrite(turnRight, HIGH);
+          digitalWrite(turnLeft, HIGH);
+
+          // Left hindWheel forward ACTIVE LOW
+          // digitalWrite(hindWheelsF1, LOW);
+          // digitalWrite(hindWheelsB1, HIGH);
+
+          // // Right hindWheel forward
+          // digitalWrite(hindWheelsF2, LOW);
+          // digitalWrite(hindWheelsB2, HIGH);
+
+          // Turn off brake
+          digitalWrite(PIN_BRAKE, HIGH);  // RELAY ACTIVE LOW, Driver Active HIGH
+
+          // These relays are ACTIVE HIGH
+          // Left hindWheel forward
+          digitalWrite(hindWheelsF1, HIGH);
+          digitalWrite(hindWheelsB1, LOW);
+
+          // Right hindWheel forward
+          digitalWrite(hindWheelsF2, HIGH);
+          digitalWrite(hindWheelsB2, LOW);
+
+        }
+
+        else if ((-290 < x && x < -80) && y < -30) {
+          Serial.println("Turning Left...");
+          // Assuming CCW as Left
+          digitalWrite(turnRight, HIGH);
+          digitalWrite(turnLeft, LOW);
+
+
+          // // Left hindWheel forward
+          // digitalWrite(hindWheelsF1, LOW);
+          // digitalWrite(hindWheelsB1, HIGH);
+
+          // // Right hindWheel backward
+          // digitalWrite(hindWheelsF2, LOW);
+          // digitalWrite(hindWheelsB2, HIGH);
+        }
+
+        else if ((80 < x && x < 290) && y < -30) {
+          Serial.println("Turning Right...");
+          // Assuming CW as right
+          digitalWrite(turnRight, LOW);
+          digitalWrite(turnLeft, HIGH);
+
+          // // Left hindWheel forward
+          // digitalWrite(hindWheelsF1, LOW);
+          // digitalWrite(hindWheelsB1, HIGH);
+
+          // // Right hindWheel backward
+          // digitalWrite(hindWheelsF2, LOW);
+          // digitalWrite(hindWheelsB2, HIGH);
+        }
+
+        else if ((-60 < x && x < 60) && y > 150 && brakeValue == 0) {
+          Serial.println("Reverse...");
+
+          // Turn off brake
+          digitalWrite(PIN_BRAKE, HIGH);  // RELAY ACTIVE LOW, Driver Active HIGH
+
+          // Turn off the steering motor ACTIVE LOW
+          digitalWrite(turnRight, HIGH);
+          digitalWrite(turnLeft, HIGH);
+
+          // Left hindWheel reverse ACTIVE LOW
+          // digitalWrite(hindWheelsF1, HIGH);
+          // digitalWrite(hindWheelsB1, LOW);
+
+          // // Right hindwheel reverse
+          // digitalWrite(hindWheelsF2, HIGH);
+          // digitalWrite(hindWheelsB2, LOW);
+
+          // Turn off brake
+          digitalWrite(PIN_BRAKE, HIGH);  // RELAY ACTIVE LOW, Driver Active HIGH
+
+          // These relays are ACTIVE HIGH
+          // Left hindWheel forward
+          digitalWrite(hindWheelsF1, LOW);
+          digitalWrite(hindWheelsB1, HIGH);
+
+          // Right hindWheel backward
+          digitalWrite(hindWheelsF2, LOW);
+          digitalWrite(hindWheelsB2, HIGH);
+
+        }
+
+        else if ((-290 < x && x < -80) && y > 30) {
+          Serial.println("Reversing Left...");
+          // Assuming CCW as Left
+          digitalWrite(turnRight, HIGH);
+          digitalWrite(turnLeft, LOW);
+        }
+
+        else if ((80 < x && x < 290) && y > 30) {
+          Serial.println("Reversing Right...");
+          // Assuming CW as right
+          digitalWrite(turnRight, LOW);
+          digitalWrite(turnLeft, HIGH);
+        }
+
+        else {
+          Serial.println("Stationary...");
+
+          // // Turn on brake
+          // digitalWrite(PIN_BRAKE, LOW);  // RELAY ACTIVE LOW, Driver Active HIGH
+
+          // Turn off the steering motor ACTIVE LOW
+          digitalWrite(turnRight, HIGH);
+          digitalWrite(turnLeft, HIGH);
+
+          // Stop the hind wheels ACTIVE LOW
+          // digitalWrite(hindWheelsF1, HIGH);
+          // digitalWrite(hindWheelsB1, HIGH);
+          // digitalWrite(hindWheelsF2, HIGH);
+          // digitalWrite(hindWheelsB2, HIGH);
+
+          // Stop the hind wheels ACTIVE HIGH
+          digitalWrite(hindWheelsF1, LOW);
+          digitalWrite(hindWheelsB1, LOW);
+          digitalWrite(hindWheelsF2, LOW);
+          digitalWrite(hindWheelsB2, LOW);
+
+          #if 0 // Set to 1 to activate and 0 to deactivate
+          Serial.print("x= " + String(x));
+          Serial.print(", y= " + String(y));
+          Serial.print(", speed= " + String(Speed));
+          Serial.print(", angle= " + String(Angle));
+          Serial.print(", brake= " + String(brakeSet));
+          Serial.println();
+          #endif
+        }
       }
       break;
   }
 }
 
 void onWebSocketEventShare(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
-
-  if (type == WStype_TEXT) {
-    // processs any returned data
-    // Serial.printf("payload [%u]: %s\n", num, payload);
-  }
 
   //Figure out the Websocket type
   switch (type) {
@@ -580,9 +773,6 @@ void onWebSocketEventShare(uint8_t num, WStype_t type, uint8_t *payload, size_t 
 
     case WStype_CONNECTED:
       {
-        // IPAddress ip = webSocket.remoteIP(client_num);
-        // Serial.printf("[%u] Connection from ", client_num);
-        // Serial.println(ip.toString());
         Serial.println("Client Connected To Share");
       }
       break;
@@ -615,12 +805,15 @@ void onWebSocketEventShare(uint8_t num, WStype_t type, uint8_t *payload, size_t 
         soilType = share_rx["soilType"].as<String>();
         stLane = share_rx["stLane"].as<String>();
         needturn = share_rx["needturn"].as<String>();
-        brakeState = share_rx["brakeState"].as<int>();
+        // brakeState = share_rx["brakeState"].as<int>();
 
         //Receive acknowledgement for Planting Parameters
         int acknowledge = share_rx["received"].as<int>();
-        // Serial.print("Acknowledge ");
-        // Serial.println(acknowledge);
+        #if 0  // Set to 1 to activate or 0 to deactivate
+          Serial.print("Acknowledge ");
+          Serial.println(acknowledge);
+        #endif
+
         if (acknowledge == 1) {
           plantingStatus = true;
         } else {
@@ -636,15 +829,15 @@ void onWebSocketEventShare(uint8_t num, WStype_t type, uint8_t *payload, size_t 
         #endif
 
         //Transfer back to Websocket Client on Share
-        StaticJsonDocument<200> brake_state;
-        String payload9 = "";
-        JsonObject object = brake_state.to<JsonObject>();
-        object["brakeState"] = brakeValue;
+        // StaticJsonDocument<56> brake_state;
+        // String payload9 = "";
+        // JsonObject object = brake_state.to<JsonObject>();
+        // object["brakeState"] = brakeValue;
 
-        serializeJson(brake_state, payload9);
+        // serializeJson(brake_state, payload9);
 
-        // webSocketControl.broadcastTXT(payload2);
-        webSocketControl.broadcastTXT(payload9);
+        // // webSocketControl.broadcastTXT(payload2);
+        // webSocketControl.broadcastTXT(payload9);
       }
       break;
   }

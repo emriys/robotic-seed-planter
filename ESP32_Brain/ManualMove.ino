@@ -39,7 +39,7 @@ void ManualMove(int x, int y, int Speed, int Angle, int brakeSet) {
     digitalWrite(hindWheelsF2, HIGH);
     digitalWrite(hindWheelsB2, LOW);
 
-}
+  }
 
   else if ((-290 < x && x < -80) && y < -30) {
     Serial.println("Turning Left...");
@@ -72,7 +72,7 @@ void ManualMove(int x, int y, int Speed, int Angle, int brakeSet) {
     // digitalWrite(hindWheelsB2, HIGH);
   }
 
-  else if ((-60 < x && x < 60) && y > 150&& brakeSet == 0) {
+  else if ((-60 < x && x < 60) && y > 150 && brakeSet == 0) {
     Serial.println("Reverse...");
 
     // Turn off brake

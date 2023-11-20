@@ -48,7 +48,7 @@ void handleCollect(AsyncWebServerRequest *request, uint8_t *data, size_t len, si
     bool plantingStatusInit = true;
 
     //Transfer back to Websocket Client on Share
-    StaticJsonDocument<1024> plant_tx;
+    StaticJsonDocument<300> plant_tx;
     String payload3 = "";
     JsonObject object = plant_tx.to<JsonObject>();
     object["cropType"] = cropType;

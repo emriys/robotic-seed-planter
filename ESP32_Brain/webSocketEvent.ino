@@ -11,22 +11,49 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
       return;
     }
 
-    // Get x, y, speed, angle, and velocity values from JSON
-    x = doc["x"].as<int>();
-    y = doc["y"].as<int>();
-    Speed = doc["speed"].as<int>();
-    Angle = doc["angle"].as<int>();
-    brakeSet = doc["brakeValue"].as<int>();
+    // // Get x, y, speed, angle, and velocity values from JSON
+    // x = doc["x"].as<int>();
+    // y = doc["y"].as<int>();
+    // Speed = doc["speed"].as<int>();
+    // Angle = doc["angle"].as<int>();
+    // brakeSet = doc["brakeValue"].as<int>();
 
-    cropType = doc["cropType"].as<String>();
-    soilType = doc["soilType"].as<String>();
-    kernelsPerHole = doc["kernelsPerHole"].as<int>();
-    farmLength = doc["farmLength"].as<float>();
-    farmBreadth = doc["farmBreadth"].as<float>();
-    stLane = doc["startingLane"].as<String>();
-    planterStartingPoint = doc["planterStartingPoint"].as<String>();
+    String restart = doc["restart"].as<String>();
+    String resume = doc["resume"].as<String>();
 
-    plantingStatus = doc["plantingStatus"].as<bool>();
+    // Restart Server
+    if (restart == "Yes") {
+      ESP.restart();
+    }
+
+    // Resume Planting
+    if (resume == "Yes") {
+      plantingStatus = true;
+      Serial.println("Resuming planting...");
+      Serial.println(" ");
+      Serial.println("/////////////////////////////////////////////////////");
+      Serial.print("Crop: ");
+      Serial.println(cropType);
+      Serial.print("Soil: ");
+      Serial.println(soilType);
+      Serial.print("KernelsPerHole: ");
+      Serial.println(kernelsPerHole);
+      Serial.print("FarmLength: ");
+      Serial.println(farmLength);
+      Serial.print("FarmBreadth: ");
+      Serial.println(farmBreadth);
+      Serial.print("StartingLane: ");
+      Serial.println(stLane);
+      Serial.print("At Starting Point?: ");
+      Serial.println(planterStartingPoint);
+      Serial.println(" ");
+
+      Serial.print("Planting Status: ");
+      Serial.println(plantingStatus);
+      Serial.println("/////////////////////////////////////////////////////");
+      delay(7000);
+      // loop();
+    }
 
     #if 0 // Set to 1 to activate
       Serial.print("Planting Status1: ");
@@ -45,6 +72,7 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
         Serial.println(" ////");
       #endif
 
+      // Set brakeState
       if (brakeSet == 0) {
         // Turn off brake
         digitalWrite(PIN_BRAKE, HIGH);  // RELAY ACTIVE LOW, Driver Active HIGH
@@ -55,19 +83,31 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
         brakeState = brakeSet;
       }
 
-      ManualMove(x, y, Speed, Angle, brakeSet);
+      // ManualMove(x, y, Speed, Angle, brakeSet);
 
-    } else if (doc["cropType"].isNull() && doc["x"].isNull()) {
-        #if 1  // Set to 1 to activate or 0 to deactivate
-          Serial.println(" ////");
-          Serial.print("Planting Status: ");
-          Serial.println(plantingStatus);
-          Serial.println(" ////");
-          if (plantingStatus == 0) {
-            acknowledge = 0;
-          }
-        #endif
+    } else if (doc["cropType"].isNull() && doc["resume"].isNull() && doc["x"].isNull()) {
+      plantingStatus = doc["plantingStatus"].as<bool>();
+      #if 1  // Set to 1 to activate or 0 to deactivate
+      
+        Serial.println(" ////");
+        Serial.print("Planting Status: ");
+        Serial.println(plantingStatus);
+        Serial.println(" ////");
+        if (plantingStatus == 0) {
+          acknowledge = 0;
+        }
+      #endif
+
     } else {
+      cropType = doc["cropType"].as<String>();
+      soilType = doc["soilType"].as<String>();
+      kernelsPerHole = doc["kernelsPerHole"].as<int>();
+      farmLength = doc["farmLength"].as<float>();
+      farmBreadth = doc["farmBreadth"].as<float>();
+      stLane = doc["startingLane"].as<String>();
+      planterStartingPoint = doc["planterStartingPoint"].as<String>();
+
+      plantingStatus = doc["plantingStatus"].as<bool>();
       #if 1 // Set to 1 to activate or 0 to deactivate
         Serial.println(" ");
         Serial.println("/////////////////////////////////////////////////////");

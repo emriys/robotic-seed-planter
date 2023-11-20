@@ -4,7 +4,7 @@ void dropSeed() {
     // Turn on seed motor
     unsigned long dropStart = millis();
     unsigned long dropnow = millis();
-    while ((dropnow - dropStart) < 5000) {
+    while ((dropnow - dropStart) < 5000 && plantingStatus == true) {
       Serial.println("Dropping Seeds.....");
       digitalWrite(seedMotor, LOW);
       dropnow = millis();

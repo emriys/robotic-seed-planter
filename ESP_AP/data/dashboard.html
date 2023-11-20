@@ -106,7 +106,10 @@
         <br/>
         <br/>
         <br>
-        <a href="/restartserver">Restart Server</a>
+        <a href="/rebootserver">Reboot Server</a>
+        <br/>
+        <br>
+        <a href="/rebootbrain">Reboot Planter</a>
 	</div>
 
     <header style="background-color: #4CAF50; color: white; text-align: center; padding: 15px;">
@@ -170,27 +173,18 @@
         <div>Developed by Abdulsalam © 2023</div>
     </footer>
 
-
-
-
-
     <script language="javascript" type="text/javascript">
 
         var planterStatus = false;
         var toggleValue = false;
         var turn;
+        var resumeState;
 
         var Hpercent;
         var Rpercent;
 
         var holes = document.getElementById("fillbar1");
         var rows = document.getElementById("fillbar2");
-        
-        //if (status == 0) {
-        //    document.getElementById("dynamic-button").innerHTML = "Start Planting";
-       //} else {
-        //    document.getElementById("dynamic-button").innerHTML = "Stop Planting";
-        //}
 
         // JavaScript to update values from ESP32
         function toggle() {
@@ -249,8 +243,11 @@
 		}
 
         function dynamicbuton() {
-            if (planterStatus == false) {
+            if (resumeState == "Start Planting" && planterStatus == false) {
                 window.location.href = '/configure';
+            }
+            else if (resumeState == "Resume Planting" && planterStatus == false) {
+                window.location.href = '/resumeplanting';
             } else {
                 window.location.href = '/stopplanting';
             }
@@ -324,6 +321,7 @@
             holes.style["width"] = Hpercent + "%";
             rows.style["width"] = Rpercent + "%";
             document.getElementById("dynamic-button").innerHTML = obj.dynamicbutton;
+            resumeState = obj.dynamicbutton;
             toggle();
 
 
